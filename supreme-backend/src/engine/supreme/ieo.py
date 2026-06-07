@@ -1,45 +1,44 @@
 """
 engine.supreme.ieo
 ==================
-IEO Engine — Pipeline Matemático Unificado.
-Spec SUPREME V4 seções 39 & 61 (incorporadas).
+IEO Engine â€” Pipeline MatemÃ¡tico Unificado.
+Spec SUPREME V4 seÃ§Ãµes 39 & 61 (incorporadas).
 
 Pipeline de 5 etapas sequenciais:
 
-    Etapa 1 — Peso por evento (nível de evento)
-        W_evento = COPINE_weight × media_multiplier
+    Etapa 1 â€” Peso por evento (nÃ­vel de evento)
+        W_evento = COPINE_weight Ã— media_multiplier
 
-    Etapa 2 — Agregação por sessão
-        IEO_session    = Σ W_evento
+    Etapa 2 â€” AgregaÃ§Ã£o por sessÃ£o
+        IEO_session    = Î£ W_evento
         IEO_window_raw = IEO_session / session_duration_minutes
 
-    Etapa 3 — Agregação por janela quinzenal (14 dias)
-        T = Σ session_duration_minutes
-        E = contagem total de eventos válidos
-        V = Σ (IEO_window_raw × session_duration_minutes)
+    Etapa 3 â€” AgregaÃ§Ã£o por janela quinzenal (14 dias)
+        T = Î£ session_duration_minutes
+        E = contagem total de eventos vÃ¡lidos
+        V = Î£ (IEO_window_raw Ã— session_duration_minutes)
         D = E / T
 
-    Etapa 4 — Padronização por baseline individual
+    Etapa 4 â€” PadronizaÃ§Ã£o por baseline individual
         z_T = (T - mean_T) / sd_T
         z_E = (E - mean_E) / sd_E
         z_V = (V - mean_V) / sd_V
         z_D = (D - mean_D) / sd_D
 
-    Etapa 5 — Combinação linear, saturação e ajuste de densidade
-        IEO_linear = 0.5·z_T + 0.3·z_E + 0.2·z_V   [α+β+γ = 1]
-        IEO_sat    = 1 / (1 + exp(-1·(IEO_linear - 1)))
-        IEO_final  = IEO_sat + 0.1·z_D               [δ ≤ 0.20]
+    Etapa 5 â€” CombinaÃ§Ã£o linear, saturaÃ§Ã£o e ajuste de densidade
+        IEO_linear = 0.5Â·z_T + 0.3Â·z_E + 0.2Â·z_V   [Î±+Î²+Î³ = 1]
+        IEO_sat    = 1 / (1 + exp(-1Â·(IEO_linear - 1)))
+        IEO_final  = IEO_sat + 0.1Â·z_D               [Î´ â‰¤ 0.20]
 
 Constantes:
-    α = 0.5, β = 0.3, γ = 0.2  (combinação linear)
-    k = 1, x0 = 1              (logística)
-    δ = 0.1                    (ajuste de densidade)
+    Î± = 0.5, Î² = 0.3, Î³ = 0.2  (combinaÃ§Ã£o linear)
+    k = 1, x0 = 1              (logÃ­stica)
+    Î´ = 0.1                    (ajuste de densidade)
 """
 
 from __future__ import annotations
 
 import math
-from datetime import date
 
 from .models import (
     BaselineParameters,
@@ -49,39 +48,39 @@ from .models import (
     compute_z_scores,
 )
 
-# ── Constantes do pipeline IEO (spec seção 39) ────────────────────────────
-ALPHA   = 0.5    # peso de z_T na combinação linear
+# â”€â”€ Constantes do pipeline IEO (spec seÃ§Ã£o 39) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ALPHA   = 0.5    # peso de z_T na combinaÃ§Ã£o linear
 BETA    = 0.3    # peso de z_E
 GAMMA   = 0.2    # peso de z_V
-DELTA   = 0.1    # coeficiente de ajuste de densidade (≤ 0.20)
+DELTA   = 0.1    # coeficiente de ajuste de densidade (â‰¤ 0.20)
 K_LOGISTIC = 1.0 # steepness da sigmoide
-X0_LOGISTIC = 1.0 # ponto de inflexão da sigmoide
+X0_LOGISTIC = 1.0 # ponto de inflexÃ£o da sigmoide
 
-assert abs(ALPHA + BETA + GAMMA - 1.0) < 1e-9, "α + β + γ deve ser = 1"
-assert DELTA <= 0.20, "δ deve ser ≤ 0.20"
+assert abs(ALPHA + BETA + GAMMA - 1.0) < 1e-9, "Î± + Î² + Î³ deve ser = 1"
+assert DELTA <= 0.20, "Î´ deve ser â‰¤ 0.20"
 
 
 def ieo_linear(z: ZScores) -> float:
     """
-    Etapa 5a — Combinação linear dos z-scores.
-    IEO_linear = α·z_T + β·z_E + γ·z_V
+    Etapa 5a â€” CombinaÃ§Ã£o linear dos z-scores.
+    IEO_linear = Î±Â·z_T + Î²Â·z_E + Î³Â·z_V
     """
     return ALPHA * z.z_t + BETA * z.z_e + GAMMA * z.z_v
 
 
 def ieo_saturation(linear: float) -> float:
     """
-    Etapa 5b — Saturação logística.
-    IEO_sat = 1 / (1 + exp(-k·(IEO_linear - x0)))
-    Evita crescimento ilimitado em exposição extrema (spec seção 40).
+    Etapa 5b â€” SaturaÃ§Ã£o logÃ­stica.
+    IEO_sat = 1 / (1 + exp(-kÂ·(IEO_linear - x0)))
+    Evita crescimento ilimitado em exposiÃ§Ã£o extrema (spec seÃ§Ã£o 40).
     """
     return 1.0 / (1.0 + math.exp(-K_LOGISTIC * (linear - X0_LOGISTIC)))
 
 
 def ieo_final(sat: float, z_d: float) -> float:
     """
-    Etapa 5c — Ajuste de densidade.
-    IEO_final = IEO_sat + δ·z_D
+    Etapa 5c â€” Ajuste de densidade.
+    IEO_final = IEO_sat + Î´Â·z_D
     """
     return sat + DELTA * z_d
 
@@ -94,26 +93,26 @@ def compute_ieo(
     Executa o pipeline IEO completo para uma janela.
 
     Args:
-        metrics:  WindowMetrics já calculadas para a janela.
-        baseline: Parâmetros de baseline congelado do analista.
+        metrics:  WindowMetrics jÃ¡ calculadas para a janela.
+        baseline: ParÃ¢metros de baseline congelado do analista.
 
     Returns:
-        IEORecord com todos os campos do pipeline (spec seção 42).
+        IEORecord com todos os campos do pipeline (spec seÃ§Ã£o 42).
 
     Raises:
-        ValueError: Se o baseline não está congelado (status != active).
+        ValueError: Se o baseline nÃ£o estÃ¡ congelado (status != active).
     """
     if baseline.baseline_status.value != "active":
         raise ValueError(
-            f"Baseline do analista {baseline.id_hash} não está ativo "
+            f"Baseline do analista {baseline.id_hash} nÃ£o estÃ¡ ativo "
             f"(status={baseline.baseline_status}). "
-            "Não é possível calcular IEO sem baseline congelado."
+            "NÃ£o Ã© possÃ­vel calcular IEO sem baseline congelado."
         )
 
-    # Etapa 4 — Padronização
+    # Etapa 4 â€” PadronizaÃ§Ã£o
     z = compute_z_scores(metrics, baseline)
 
-    # Etapa 5 — Combinação, saturação e ajuste
+    # Etapa 5 â€” CombinaÃ§Ã£o, saturaÃ§Ã£o e ajuste
     linear = ieo_linear(z)
     sat    = ieo_saturation(linear)
     final  = ieo_final(sat, z.z_d)
@@ -132,10 +131,10 @@ def compute_ieo(
 
 
 # =============================================================================
-# Baseline Engine (spec seção 37)
+# Baseline Engine (spec seÃ§Ã£o 37)
 # =============================================================================
 
-MIN_BASELINE_WINDOWS = 4    # mínimo de janelas válidas (DQ ≥ 0.5)
+MIN_BASELINE_WINDOWS = 4    # mÃ­nimo de janelas vÃ¡lidas (DQ â‰¥ 0.5)
 MAX_BASELINE_WINDOWS = 8    # fase inicial: primeiras 4 a 8 janelas
 
 
@@ -145,31 +144,31 @@ def compute_baseline(
     previous:        BaselineParameters | None = None,
 ) -> BaselineParameters:
     """
-    Calcula os parâmetros de baseline a partir de janelas válidas.
+    Calcula os parÃ¢metros de baseline a partir de janelas vÃ¡lidas.
 
-    Regras (spec seção 37.1):
-    - Mínimo 4 janelas com DQ ≥ 0.5
+    Regras (spec seÃ§Ã£o 37.1):
+    - MÃ­nimo 4 janelas com DQ â‰¥ 0.5
     - Nenhuma janela com critical_load_flag (verificado pelo caller)
     - Calculado exclusivamente na fase inicial
 
     Args:
         id_hash:       Identificador pseudonimizado.
-        valid_metrics: Janelas válidas para o baseline (sem flags, DQ ≥ 0.5).
-        previous:      Baseline anterior (para arquivamento, se necessário).
+        valid_metrics: Janelas vÃ¡lidas para o baseline (sem flags, DQ â‰¥ 0.5).
+        previous:      Baseline anterior (para arquivamento, se necessÃ¡rio).
 
     Returns:
         Novo BaselineParameters com status='active'.
 
     Raises:
-        ValueError: Se não há janelas válidas suficientes.
+        ValueError: Se nÃ£o hÃ¡ janelas vÃ¡lidas suficientes.
     """
     if len(valid_metrics) < MIN_BASELINE_WINDOWS:
         raise ValueError(
-            f"Baseline requer mínimo {MIN_BASELINE_WINDOWS} janelas válidas. "
-            f"Disponíveis: {len(valid_metrics)}."
+            f"Baseline requer mÃ­nimo {MIN_BASELINE_WINDOWS} janelas vÃ¡lidas. "
+            f"DisponÃ­veis: {len(valid_metrics)}."
         )
 
-    # Limita ao máximo da fase inicial
+    # Limita ao mÃ¡ximo da fase inicial
     use = valid_metrics[:MAX_BASELINE_WINDOWS]
 
     def _mean(values: list[float]) -> float:
@@ -177,7 +176,7 @@ def compute_baseline(
 
     def _std(values: list[float], mean: float) -> float:
         if len(values) < 2:
-            return 0.001  # floor para evitar divisão por zero
+            return 0.001  # floor para evitar divisÃ£o por zero
         variance = sum((v - mean) ** 2 for v in values) / (len(values) - 1)
         return max(math.sqrt(variance), 0.001)
 
@@ -186,10 +185,14 @@ def compute_baseline(
     vs = [m.v_volume for m in use]
     ds = [m.d_density for m in use]
 
-    mean_t = _mean(ts); sd_t = _std(ts, mean_t)
-    mean_e = _mean(es); sd_e = _std(es, mean_e)
-    mean_v = _mean(vs); sd_v = _std(vs, mean_v)
-    mean_d = _mean(ds); sd_d = _std(ds, mean_d)
+    mean_t = _mean(ts)
+    sd_t = _std(ts, mean_t)
+    mean_e = _mean(es)
+    sd_e = _std(es, mean_e)
+    mean_v = _mean(vs)
+    sd_v = _std(vs, mean_v)
+    mean_d = _mean(ds)
+    sd_d = _std(ds, mean_d)
 
     version = 1
     if previous:

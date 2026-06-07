@@ -1,17 +1,17 @@
 """
 app.db
 ======
-Camada de acesso ao banco de dados — PostgreSQL via asyncpg + SQLAlchemy async.
+Camada de acesso ao banco de dados â€” PostgreSQL via asyncpg + SQLAlchemy async.
 
-Segue o princípio do Gridform: única fronteira de I/O autorizada.
-Nenhum outro módulo chama o banco diretamente.
+Segue o princÃ­pio do Gridform: Ãºnica fronteira de I/O autorizada.
+Nenhum outro mÃ³dulo chama o banco diretamente.
 """
 
 from __future__ import annotations
 
 import json
-from datetime import date, datetime, timezone
-from typing import Any, Optional, Sequence
+from datetime import date
+from typing import Any, Optional
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -20,7 +20,7 @@ from .config import get_settings
 
 settings = get_settings()
 
-# ── Engine SQLAlchemy async ───────────────────────────────────────────────
+# â”€â”€ Engine SQLAlchemy async â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 _engine = create_async_engine(
     settings.database_url,
     pool_size=settings.database_pool_size,
@@ -37,7 +37,7 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 async def get_db() -> AsyncSession:
-    """FastAPI dependency: fornece uma sessão de banco por request."""
+    """FastAPI dependency: fornece uma sessÃ£o de banco por request."""
     async with AsyncSessionLocal() as session:
         yield session
 
@@ -51,16 +51,16 @@ async def insert_events(
     events: list[dict],
 ) -> int:
     """
-    Insere eventos em lote com deduplicação por event_hash.
+    Insere eventos em lote com deduplicaÃ§Ã£o por event_hash.
     Usa SELECT-then-INSERT para compatibilidade com tabelas particionadas
-    (ON CONFLICT em tabelas particionadas exige constraint na partição destino
-    resolvida em tempo de execução, o que nem sempre está disponível).
-    Retorna o número de eventos efetivamente armazenados.
+    (ON CONFLICT em tabelas particionadas exige constraint na partiÃ§Ã£o destino
+    resolvida em tempo de execuÃ§Ã£o, o que nem sempre estÃ¡ disponÃ­vel).
+    Retorna o nÃºmero de eventos efetivamente armazenados.
     """
     if not events:
         return 0
 
-    # Coletar hashes já existentes no banco para deduplicar em memória.
+    # Coletar hashes jÃ¡ existentes no banco para deduplicar em memÃ³ria.
     # Duplicatas enriquecidas posteriormente (watcher com duration real) atualizam
     # duration_seconds quando trazem valor maior do que o capturado pelo proxy.
     hashes = [e["event_hash"] for e in events]
@@ -72,8 +72,8 @@ async def insert_events(
 
     stored = 0
     for event in events:
-        # Serializa operações por event_hash para evitar corrida entre SELECT e INSERT
-        # nas partições de events_raw quando dois coletores enviam o mesmo evento.
+        # Serializa operaÃ§Ãµes por event_hash para evitar corrida entre SELECT e INSERT
+        # nas partiÃ§Ãµes de events_raw quando dois coletores enviam o mesmo evento.
         await db.execute(
             text("SELECT pg_advisory_xact_lock(hashtext(:event_hash))"),
             {"event_hash": event["event_hash"]},
@@ -235,8 +235,8 @@ async def fetch_baseline(db: AsyncSession, id_hash: str) -> Optional[dict]:
 
 async def upsert_baseline(db: AsyncSession, baseline: dict) -> None:
     # Normaliza enum instances para string pura antes de passar ao SQLAlchemy.
-    # Pydantic v2 model_dump() retorna BaselineStatus.ACTIVE como instância enum
-    # (mesmo sendo str subclass), e o driver asyncpg pode falhar na serialização.
+    # Pydantic v2 model_dump() retorna BaselineStatus.ACTIVE como instÃ¢ncia enum
+    # (mesmo sendo str subclass), e o driver asyncpg pode falhar na serializaÃ§Ã£o.
     params = {
         k: (v.value if hasattr(v, "value") else v)
         for k, v in baseline.items()
@@ -416,15 +416,15 @@ async def count_dlq(db: AsyncSession) -> int:
 
 
 # =============================================================================
-# Primitivas psicométricas (módulo PSI — migration 003)
+# Primitivas psicomÃ©tricas (mÃ³dulo PSI â€” migration 003)
 # =============================================================================
 
 _INSTRUMENTS = ("PANAS_SHORT", "DASS21", "OLBI", "SRQ20")
 
 
 async def ensure_schedule_exists(db: AsyncSession, id_hash: str) -> None:
-    """Cria entradas de schedule para todos os instrumentos se ainda não existirem.
-    Usa NOW() do servidor PostgreSQL para evitar skew de clock Python↔DB."""
+    """Cria entradas de schedule para todos os instrumentos se ainda nÃ£o existirem.
+    Usa NOW() do servidor PostgreSQL para evitar skew de clock Pythonâ†”DB."""
     for instrument in _INSTRUMENTS:
         await db.execute(
             text("""
@@ -453,7 +453,7 @@ async def fetch_schedule(db: AsyncSession, id_hash: str) -> list[dict]:
 
 async def fetch_due_instruments(db: AsyncSession, id_hash: str) -> list[str]:
     """Retorna lista de instrumentos cujo next_due <= agora.
-    Usa NOW() do servidor PostgreSQL para consistência com ensure_schedule_exists."""
+    Usa NOW() do servidor PostgreSQL para consistÃªncia com ensure_schedule_exists."""
     result = await db.execute(
         text("""
             SELECT instrument FROM instrument_schedule
@@ -496,7 +496,7 @@ async def insert_psychometric_submission(
     window_ref: object,
     responses:  list,
 ) -> int:
-    """Insere submissão psicométrica e retorna o record_id gerado."""
+    """Insere submissÃ£o psicomÃ©trica e retorna o record_id gerado."""
     import json as _json
     from datetime import date
     result = await db.execute(
@@ -526,7 +526,7 @@ async def fetch_psychometric_history(
     id_hash: str,
     limit:   int = 200,
 ) -> list[dict]:
-    """Retorna histórico de submissões psicométricas, mais recente primeiro."""
+    """Retorna histÃ³rico de submissÃµes psicomÃ©tricas, mais recente primeiro."""
     result = await db.execute(
         text("""
             SELECT instrument, score, timestamp, window_ref
@@ -545,7 +545,7 @@ async def fetch_scores_by_instrument(
     id_hash:    str,
     instrument: str,
 ) -> list[float]:
-    """Retorna scores históricos de um instrumento, ordem cronológica."""
+    """Retorna scores histÃ³ricos de um instrumento, ordem cronolÃ³gica."""
     result = await db.execute(
         text("""
             SELECT score FROM psychometric_submissions
@@ -599,7 +599,7 @@ async def upsert_psi(db: AsyncSession, psi: dict) -> None:
     await db.commit()
 
 # =============================================================================
-# Auditoria LGPD / governança de dados
+# Auditoria LGPD / governanÃ§a de dados
 # =============================================================================
 
 async def insert_audit_log(db: AsyncSession, entry: dict) -> None:
@@ -686,8 +686,8 @@ async def erase_subject(db: AsyncSession, id_hash: str, actor: str = "system") -
         except Exception as exc:
             deleted[table] = f"error: {exc}"
 
-    # Logs operacionais e auditoria são preservados por necessidade de integridade,
-    # mas deixam de carregar identificador pseudonimizado reversível do titular.
+    # Logs operacionais e auditoria sÃ£o preservados por necessidade de integridade,
+    # mas deixam de carregar identificador pseudonimizado reversÃ­vel do titular.
     health = await db.execute(
         text("UPDATE system_health_logs SET id_hash = 'ERASED_' || id_hash WHERE id_hash = :id_hash"),
         {"id_hash": id_hash},
