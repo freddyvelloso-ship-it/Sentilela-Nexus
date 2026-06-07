@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        SUPREME V4 — Patch de integração com o IPED
+        ============================================
+        Este pom.xml compila apenas o SupremeAuditLogger.java.
+        O .jar gerado deve ser copiado para o classpath do iped-app
+        OU a classe compilada deve ser inserida no iped-app.jar.
+
+        Pré-requisitos:
+          - JDK 11 Liberica Full (com JavaFX) instalado
+          - Repositório IPED clonado em ../iped-source  (ou ajuste <iped.source.dir>)
+          - Maven 3.8+
+
+        Build:
+          mvn clean package -DskipTests
+
+        Saída: target/supreme-audit-logger-1.0.0.jar
+    -->
+
+    <groupId>br.gov.pf.iped</groupId>
+    <artifactId>supreme-audit-logger</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+    <name>SUPREME V4 — Audit Logger for IPED</name>
+
+    <properties>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Ajuste este caminho para onde você clonou o IPED -->
+        <iped.source.dir>${project.basedir}/../iped-source</iped.source.dir>
+        <!-- Versão do IPED — use a tag/branch que você está usando -->
+        <iped.version>4.2.2</iped.version>
+    </properties>
+
+    <dependencies>
+        <!--
+            Dependências do IPED necessárias para compilar o SupremeAuditLogger.
+            Após "mvn install -DskipTests" dentro do repositório IPED, estes
+            artefatos ficam disponíveis no ~/.m2/repository local.
+        -->
+        <dependency>
+            <groupId>br.gov.pf.iped</groupId>
+            <artifactId>iped-app</artifactId>
+            <version>${iped.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>br.gov.pf.iped</groupId>
+            <artifactId>iped-engine</artifactId>
+            <version>${iped.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>br.gov.pf.iped</groupId>
+            <artifactId>iped-api</artifactId>
+            <version>${iped.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Lucene (versão usada pelo IPED — ajuste se necessário) -->
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>9.7.0</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>11</source>
+                    <target>11</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <finalName>supreme-audit-logger-${project.version}</finalName>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

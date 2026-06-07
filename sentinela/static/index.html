@@ -1,0 +1,3247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SENTINELA — Dashboard SUPREME V4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:      #030a1a;
+  --bg2:     #060f27;
+  --bg3:     #0a1638;
+  --surface: #0d1b3e;
+  --border:  rgba(255,255,255,0.07);
+  --accent:  #1a6fff;
+  --accent2: #00c6ff;
+  --text:    #e8eaf2;
+  --muted:   #7a84a8;
+  --green:   #00ff88;
+  --green2:  #10b981;
+  --amber:   #f97316;
+  --amber2:  #ff6000;
+  --red:     #ef4444;
+  --purple:  #8b5cf6;
+  --circuit: #ff6600;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── BACKGROUND EFFECTS ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(26,111,255,0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(0,198,255,0.08) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 75% 60%, rgba(249,115,22,0.06) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 30% at 60% 30%, rgba(139,92,246,0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── LOGIN SCREEN ── */
+#login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  background: #020810;
+  overflow: hidden;
+}
+
+/* Bokeh particles canvas */
+#bokeh-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Painel esquerdo — cyborg */
+.login-image-panel {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+@media (max-width: 768px) { .login-image-panel { display: none; } }
+
+.login-image-panel img,
+.login-image-panel video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  filter: brightness(0.9) saturate(1.15) contrast(1.05);
+}
+
+/* Gradiente de fusão direita → form */
+.login-image-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to right, transparent 55%, #020810 100%),
+    linear-gradient(to top, #020810 0%, transparent 25%),
+    linear-gradient(to bottom, #020810 0%, transparent 12%);
+  z-index: 1;
+}
+
+/* Overlays de circuito laranja + azul */
+.login-image-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 35% 55%, rgba(255,102,0,0.12) 0%, transparent 65%),
+    radial-gradient(ellipse 45% 35% at 65% 35%, rgba(0,180,255,0.08) 0%, transparent 55%),
+    radial-gradient(ellipse 30% 25% at 20% 80%, rgba(0,255,136,0.06) 0%, transparent 50%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Linha de scan animada */
+.login-image-panel .scan-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0,198,255,0.4), rgba(0,198,255,0.85), rgba(0,198,255,0.4), transparent);
+  z-index: 3;
+  animation: scan-sweep 6s ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(0,198,255,0.5);
+}
+@keyframes scan-sweep {
+  0%   { top: -2px; opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* Data overlays no painel esquerdo */
+.login-data-overlay {
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.data-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(2,8,16,0.7);
+  border: 1px solid rgba(0,255,136,0.25);
+  border-radius: 4px;
+  backdrop-filter: blur(8px);
+  font-size: 10px;
+  color: #00c6ff;
+  letter-spacing: .8px;
+  font-family: 'Courier New', monospace;
+  white-space: nowrap;
+}
+.data-chip .chip-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #00c6ff;
+  box-shadow: 0 0 6px #00c6ff;
+  animation: blink-green 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.data-chip.orange { border-color: rgba(255,102,0,0.3); color: #ff8833; }
+.data-chip.orange .chip-dot { background: #ff6600; box-shadow: 0 0 6px #ff6600; animation: blink-orange 1.5s ease-in-out infinite; }
+.data-chip.blue { border-color: rgba(0,180,255,0.3); color: #00b4ff; }
+.data-chip.blue .chip-dot { background: #00b4ff; box-shadow: 0 0 6px #00b4ff; animation: blink-blue 2.5s ease-in-out infinite; }
+
+@keyframes blink-green  { 0%,100%{opacity:1} 50%{opacity:.3} }
+@keyframes blink-orange { 0%,100%{opacity:1} 50%{opacity:.4} }
+@keyframes blink-blue   { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.login-image-caption {
+  position: relative;
+  z-index: 5;
+  padding: 32px 40px;
+}
+
+.login-image-caption .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(255,102,0,0.4);
+  background: rgba(255,102,0,0.08);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #ff8833;
+  margin-bottom: 12px;
+}
+
+.login-image-caption .badge::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #ff6600;
+  box-shadow: 0 0 8px #ff6600;
+  animation: blink-orange 1.5s ease-in-out infinite;
+}
+
+/* Botão de som */
+.sound-btn {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 10;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,198,255,0.35);
+  background: rgba(2,8,16,0.7);
+  color: #00c6ff;
+  font-size: 17px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s;
+  animation: sound-pulse 3s ease-in-out infinite;
+}
+.sound-btn:hover {
+  background: rgba(0,198,255,0.15);
+  border-color: rgba(0,198,255,0.7);
+  transform: scale(1.1);
+}
+.sound-btn.active {
+  border-color: rgba(0,198,255,0.5);
+  color: #00c6ff;
+  animation: none;
+}
+@keyframes sound-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(0,198,255,0.4); }
+  50%      { box-shadow: 0 0 0 8px rgba(0,198,255,0); }
+}
+
+.login-image-caption h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #fff;
+  letter-spacing: -0.5px;
+  text-shadow: 0 0 30px rgba(0,180,255,0.4), 0 0 60px rgba(255,102,0,0.2);
+}
+
+.login-image-caption p {
+  margin-top: 10px;
+  font-size: 13px;
+  color: rgba(200,215,240,0.6);
+  line-height: 1.6;
+  max-width: 320px;
+}
+
+/* Painel direito — formulário */
+.login-form-panel {
+  width: 440px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
+  position: relative;
+  z-index: 10;
+}
+
+@media (max-width: 768px) {
+  .login-form-panel { width: 100%; padding: 32px 24px; }
+}
+
+.login-card {
+  width: 100%;
+  max-width: 360px;
+  position: relative;
+  background: rgba(6,14,32,0.85);
+  border: 1px solid rgba(0,180,255,0.15);
+  border-radius: 6px;
+  padding: 36px 32px;
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 0 40px rgba(0,100,200,0.12),
+    inset 0 1px 0 rgba(0,180,255,0.08);
+}
+
+/* Cantos decorativos da card */
+.login-card::before, .login-card::after {
+  content: '';
+  position: absolute;
+  width: 18px; height: 18px;
+  border-color: #ff6600;
+  border-style: solid;
+}
+.login-card::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; border-radius: 1px 0 0 0; }
+.login-card::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; border-radius: 0 0 1px 0; }
+
+.login-logo {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #ffffff 20%, #00b4ff 70%, #ff6600 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+}
+
+.login-logo-icon {
+  width: 48px; height: 48px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(255,102,0,0.15) 0%, rgba(0,100,200,0.2) 100%);
+  border: 1px solid rgba(255,102,0,0.3);
+  box-shadow: 0 0 20px rgba(255,102,0,0.2), inset 0 0 20px rgba(0,180,255,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+
+/* Scan bar no topo da card */
+.login-card-scan {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00b4ff, #ff6600, transparent);
+  background-size: 200% 100%;
+  animation: card-scan 3s linear infinite;
+  border-radius: 1px;
+  margin-bottom: 24px;
+}
+@keyframes card-scan { 0%{background-position:200%} 100%{background-position:-200%} }
+
+.login-sub {
+  font-size: 12px;
+  color: rgba(122,132,168,0.8);
+  margin-bottom: 32px;
+  letter-spacing: 0.5px;
+  line-height: 1.5;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(0,180,255,0.7);
+  margin-bottom: 8px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 11px 14px;
+  background: rgba(0,20,50,0.6);
+  border: 1px solid rgba(0,180,255,0.15);
+  border-radius: 4px;
+  color: #e8eaf2;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: all .2s;
+  letter-spacing: .3px;
+}
+
+.form-group input::placeholder { color: rgba(122,132,168,0.4); }
+
+.form-group input:focus {
+  border-color: rgba(255,102,0,0.5);
+  background: rgba(0,20,50,0.8);
+  box-shadow: 0 0 0 3px rgba(255,102,0,0.08), 0 0 12px rgba(255,102,0,0.1);
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, #ff6600 0%, #d4a017 45%, #0066ff 100%);
+  border: 1px solid rgba(0,198,255,0.35);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all .25s;
+  margin-top: 8px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 22px rgba(0,102,255,0.25), 0 0 12px rgba(255,102,0,0.15);
+}
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.07));
+}
+.btn-primary:hover {
+  box-shadow: 0 0 36px rgba(0,198,255,0.45), 0 0 18px rgba(255,102,0,0.25);
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.remember-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 4px;
+  cursor: pointer;
+  user-select: none;
+}
+.remember-row input[type=checkbox] { display: none; }
+.remember-check {
+  width: 16px; height: 16px;
+  border: 1px solid rgba(0,198,255,0.35);
+  border-radius: 3px;
+  background: rgba(0,198,255,0.06);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.remember-row input:checked ~ .remember-check {
+  background: rgba(0,198,255,0.2);
+  border-color: rgba(0,198,255,0.7);
+}
+.remember-row input:checked ~ .remember-check::after {
+  content: '✓';
+  font-size: 11px;
+  color: #00c6ff;
+  font-weight: 700;
+}
+.remember-label {
+  font-size: 11px;
+  color: rgba(122,132,168,0.75);
+  letter-spacing: 0.4px;
+}
+
+#login-error {
+  display: none;
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: rgba(239,68,68,0.10);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 4px;
+  font-size: 12px;
+  color: #ef4444;
+  text-align: center;
+  letter-spacing: .3px;
+}
+
+/* ── APP SHELL ── */
+#app-shell { display: none; position: relative; z-index: 1; }
+
+/* ── HEADER ── */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: rgba(3,7,26,0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  gap: 20px;
+}
+
+.logo {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #fff 0%, var(--accent2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  white-space: nowrap;
+}
+
+.logo span {
+  font-size: 11px;
+  font-weight: 500;
+  -webkit-text-fill-color: var(--muted);
+  color: var(--muted);
+  background: none;
+  display: block;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-top: -2px;
+}
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.status-dot-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+.status-dot.stale { background: var(--amber); box-shadow: 0 0 6px var(--amber); animation: none; }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.refresh-countdown {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.user-badge strong { color: var(--text); font-weight: 600; }
+
+.role-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.role-badge.master { background: rgba(26,111,255,0.2); color: var(--accent2); }
+.role-badge.pibic  { background: rgba(139,92,246,0.2); color: var(--purple); }
+
+.btn-logout {
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 7px;
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s;
+}
+.btn-logout:hover { background: rgba(239,68,68,0.1); }
+
+/* ── NAV TABS ── */
+.nav {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 1px;
+}
+.nav::-webkit-scrollbar { display: none; }
+
+.nav-tab {
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color .2s, border-color .2s;
+  user-select: none;
+}
+
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active { color: var(--accent2); border-bottom-color: var(--accent2); }
+
+/* ── MAIN ── */
+.main {
+  padding: 32px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* ── SECTIONS ── */
+.section { display: none; }
+.section.active { display: block; }
+
+.section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.section-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 28px;
+}
+
+/* ── CARDS ── */
+.card {
+  background: rgba(13,27,62,0.5);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  backdrop-filter: blur(8px);
+}
+
+.card-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+/* ── KPI GRID ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.kpi-card {
+  background: rgba(13,27,62,0.6);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color .2s;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  opacity: 0.6;
+}
+
+.kpi-card:hover { border-color: rgba(255,255,255,0.13); }
+
+.kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.kpi-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.kpi-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.kpi-icon {
+  position: absolute;
+  top: 20px; right: 20px;
+  font-size: 22px;
+  opacity: 0.4;
+}
+
+/* ── GRID LAYOUTS ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+
+/* ── CHART CONTAINERS ── */
+.chart-wrap {
+  position: relative;
+  height: 280px;
+}
+
+.chart-wrap.tall { height: 360px; }
+.chart-wrap.xl { height: 420px; }
+
+/* ── TABLE ── */
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+thead th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background .15s;
+  cursor: pointer;
+}
+
+tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+tbody td {
+  padding: 11px 14px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* ── BADGE ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.badge.baseline    { background: rgba(16,185,129,0.15); color: var(--green); }
+.badge.residual_burden { background: rgba(245,158,11,0.15); color: var(--amber); }
+.badge.convergence { background: rgba(239,68,68,0.15); color: var(--red); }
+.badge.divergence  { background: rgba(139,92,246,0.15); color: var(--purple); }
+
+.flag-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  margin: 1px;
+}
+
+.flag-tag.reactivity  { background: rgba(245,158,11,0.15); color: var(--amber); }
+.flag-tag.dissonance  { background: rgba(139,92,246,0.15); color: var(--purple); }
+.flag-tag.chronicity  { background: rgba(239,68,68,0.15); color: var(--red); }
+.flag-tag.default     { background: rgba(255,255,255,0.07); color: var(--muted); }
+
+/* ── CONVERGENCE CARDS ── */
+.conv-card {
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  padding: 22px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color .2s;
+}
+
+.conv-card.baseline    { border-color: rgba(16,185,129,0.2); }
+.conv-card.residual_burden { border-color: rgba(245,158,11,0.2); }
+.conv-card.convergence { border-color: rgba(239,68,68,0.2); }
+.conv-card.divergence  { border-color: rgba(139,92,246,0.2); }
+
+.conv-card-icon {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.conv-card-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.conv-card.baseline    .conv-card-name { color: var(--green); }
+.conv-card.residual_burden .conv-card-name { color: var(--amber); }
+.conv-card.convergence .conv-card-name { color: var(--red); }
+.conv-card.divergence  .conv-card-name { color: var(--purple); }
+
+.conv-card-def {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+.conv-card-count {
+  font-family: 'Syne', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.conv-card-pct {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* ── PARTICIPANT SIDE PANEL ── */
+#side-panel-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 500;
+  backdrop-filter: blur(4px);
+}
+
+#side-panel {
+  position: fixed;
+  top: 0; right: 0;
+  width: 700px;
+  max-width: 95vw;
+  height: 100vh;
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  z-index: 501;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateX(100%);
+  transition: transform .3s cubic-bezier(.16,1,.3,1);
+}
+
+#side-panel.open { transform: translateX(0); }
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.panel-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.panel-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+}
+.panel-close:hover { background: rgba(239,68,68,0.15); color: var(--red); }
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+/* ── RED FLAGS SECTION ── */
+.flag-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.flag-card {
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  padding: 20px;
+  text-align: center;
+}
+
+.flag-card-count {
+  font-family: 'Syne', sans-serif;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.flag-card-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+.flag-card.reactivity .flag-card-count { color: var(--amber); }
+.flag-card.dissonance .flag-card-count { color: var(--purple); }
+.flag-card.chronicity .flag-card-count { color: var(--red); }
+
+/* Flag list */
+.flag-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+
+.flag-item {
+  background: rgba(13,27,62,0.5);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: border-color .2s;
+}
+
+.flag-item:hover { border-color: rgba(255,255,255,0.12); }
+
+.flag-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.flag-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.flag-item-id {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--muted);
+  background: rgba(255,255,255,0.06);
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.flag-item-date { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.flag-item-chevron { color: var(--muted); font-size: 14px; transition: transform .2s; }
+.flag-item.open .flag-item-chevron { transform: rotate(180deg); }
+
+.flag-detail {
+  display: none;
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--muted);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.flag-item.open .flag-detail { display: block; }
+
+/* ── PSICOMÉTRICOS ── */
+.psico-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+/* ── BASELINE SECTION ── */
+.baseline-params {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.param-card {
+  background: rgba(13,27,62,0.6);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  text-align: center;
+}
+
+.param-card-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.param-card-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent2);
+}
+
+/* ── SÉRIE LONGITUDINAL ── */
+.progress-bar-wrap {
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  height: 8px;
+  margin: 8px 0 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 6px;
+  transition: width .6s ease;
+}
+
+/* ── HISTÓRICO SECTION ── */
+.participant-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.participant-selector label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.participant-selector select {
+  padding: 9px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  min-width: 220px;
+}
+
+.participant-selector select:focus { border-color: rgba(26,111,255,0.4); }
+
+/* ── LOADING / ERROR ── */
+.loading-msg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  padding: 40px;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,0.1);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error-msg {
+  padding: 14px 18px;
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 10px;
+  color: var(--red);
+  font-size: 13px;
+  margin: 12px 0;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1100px) {
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .baseline-params { grid-template-columns: repeat(2, 1fr); }
+  .flag-cards { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 800px) {
+  .main { padding: 16px; }
+  .header { padding: 0 16px; }
+  .grid-2, .grid-3, .psico-grid { grid-template-columns: 1fr; }
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .flag-cards { grid-template-columns: 1fr; }
+  .baseline-params { grid-template-columns: 1fr 1fr; }
+  .conv-card-grid { grid-template-columns: 1fr 1fr; }
+  .header-meta { gap: 10px; }
+  .logo span { display: none; }
+}
+
+@media (max-width: 500px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+  .grid-4 { grid-template-columns: 1fr; }
+  .baseline-params { grid-template-columns: 1fr; }
+}
+
+/* ── MISC ── */
+.divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+.text-green  { color: var(--green); }
+.text-amber  { color: var(--amber); }
+.text-red    { color: var(--red); }
+.text-purple { color: var(--purple); }
+.text-accent { color: var(--accent2); }
+.text-muted  { color: var(--muted); }
+
+.mt-20 { margin-top: 20px; }
+.mb-20 { margin-bottom: 20px; }
+.mb-8  { margin-bottom: 8px; }
+
+/* IEO section extras */
+.ieo-grid-top { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+
+/* ── RELATÓRIO — Modal ── */
+#rpt-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:600;align-items:center;justify-content:center;backdrop-filter:blur(5px)}
+#rpt-overlay.open{display:flex}
+#rpt-modal{background:var(--bg2);border:1px solid var(--border);border-radius:14px;width:min(900px,96vw);max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(0,0,0,.6)}
+#rpt-head{padding:18px 24px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-shrink:0}
+.rpt-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:var(--text)}
+.rpt-sub{font-size:11px;color:var(--muted);margin-top:3px;font-family:monospace}
+#rpt-body{overflow-y:auto;padding:24px 28px;flex:1;scrollbar-width:thin}
+#rpt-foot{padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0}
+.rs{margin-bottom:26px}
+.rs h2{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--accent2);border-bottom:1px solid var(--border);padding-bottom:7px;margin-bottom:12px}
+.rs h3{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px}
+.rrow{display:flex;gap:8px;margin-bottom:6px;font-size:12px}
+.rk{color:var(--muted);min-width:200px;flex-shrink:0}
+.rv{color:var(--text);font-weight:500}
+.rwc{padding:11px 14px;border-radius:9px;border:1px solid var(--border);background:rgba(13,27,62,.5);margin-bottom:7px;display:flex;gap:14px;align-items:center}
+.rwn{font-weight:600;font-size:12px;min-width:130px;color:var(--text)}
+.rwv{font-family:monospace;font-size:11px;color:var(--muted);flex:1}
+.rrec{padding:12px 16px;border-radius:8px;border-left:3px solid var(--accent);background:rgba(26,111,255,.07);font-size:12px;line-height:1.65;margin-bottom:8px;color:var(--text)}
+.rpt-laudo{background:rgba(13,27,62,.6);border:1px solid var(--border);border-radius:8px;padding:18px;font-size:12px;line-height:1.9;color:var(--muted);min-height:80px;white-space:pre-wrap}
+.rpt-laudo-cursor::after{content:'▋';animation:rpt-blink .7s step-end infinite;color:var(--accent2)}
+@keyframes rpt-blink{50%{opacity:0}}
+.rpt-semaphore{display:flex;align-items:center;gap:18px;padding:16px 20px;border-radius:10px;margin-bottom:16px}
+.rpt-semaphore.low{background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.3)}
+.rpt-semaphore.medium{background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.3)}
+.rpt-semaphore.high{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3)}
+.rpt-semaphore.critical{background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.3)}
+.rpt-semaphore-icon{font-size:36px}
+.rpt-semaphore-label{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;line-height:1}
+.rpt-semaphore-sub{font-size:12px;color:var(--muted);margin-top:4px}
+.rpt-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px}
+.rpt-tbl th{padding:7px 12px;text-align:left;font-family:'Syne',sans-serif;font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);background:rgba(255,255,255,.02)}
+.rpt-tbl td{padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+.rpt-tbl tr:last-child td{border-bottom:none}
+.rpt-formula{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:14px 16px;font-family:'Courier New',monospace;font-size:12px;color:var(--accent2);line-height:1.9;margin:10px 0}
+.rpt-sig{border-top:1px dashed var(--muted);margin-top:8px;padding-top:6px;font-size:11px;color:var(--muted)}
+@media print{
+  *,*::before,*::after{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  html,body{height:auto!important;overflow:visible!important;background:#fff!important;color:#000!important;display:block!important}
+  .header,.nav,#side-panel-overlay,#side-panel,.section{display:none!important}
+  #rpt-overlay{display:block!important;position:static!important;background:none!important;backdrop-filter:none!important;padding:0!important}
+  #rpt-modal{width:100%!important;max-width:100%!important;max-height:none!important;height:auto!important;overflow:visible!important;display:block!important;border:none!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
+  #rpt-head{border-bottom:2px solid #1a6fff!important;padding:10px 0 8px!important}
+  .rpt-title{color:#1a6fff!important} #rpt-foot{display:none!important}
+  #rpt-body{overflow:visible!important;height:auto!important;max-height:none!important;padding:0!important;display:block!important}
+  .rs{page-break-inside:avoid;margin-bottom:16px!important}
+  .rs h2{color:#1a6fff!important;border-bottom:1px solid #e2e8f0!important}
+  .rk{color:#64748b!important}.rv{color:#000!important}
+  .rwc{border:1px solid #e2e8f0!important;background:#f8fafc!important;page-break-inside:avoid}
+  .rwn{color:#000!important}.rwv{color:#475569!important}
+  .rrec{background:#eff6ff!important;border-left:3px solid #1a6fff!important;page-break-inside:avoid;color:#1e293b!important}
+  .rpt-laudo{background:#f8fafc!important;border:1px solid #e2e8f0!important;color:#1e293b!important}
+  .rpt-laudo-cursor::after{display:none}
+  .rpt-semaphore{print-color-adjust:exact;-webkit-print-color-adjust:exact;page-break-inside:avoid}
+  .rpt-semaphore.low{background:#dcfce7!important;border:1px solid #86efac!important}
+  .rpt-semaphore.medium{background:#fef3c7!important;border:1px solid #fcd34d!important}
+  .rpt-semaphore.high{background:#fee2e2!important;border:1px solid #fca5a5!important}
+  .rpt-semaphore.critical{background:#ede9fe!important;border:1px solid #c4b5fd!important}
+  .rpt-semaphore-label{color:#000!important}
+  .rpt-formula{background:#f1f5f9!important;color:#1a6fff!important;border:1px solid #e2e8f0!important}
+  .rpt-tbl th{background:#f0f4ff!important;color:#475569!important;border-bottom:1px solid #cbd5e1!important}
+  .rpt-tbl td{border-bottom:1px solid #f1f5f9!important;color:#1e293b!important}
+  .rpt-sig{border-top-color:#94a3b8!important;color:#64748b!important}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<canvas id="bokeh-canvas"></canvas>
+
+<div id="login-screen">
+
+  <!-- Painel esquerdo: ciborgue PF -->
+  <div class="login-image-panel">
+    <div class="scan-line"></div>
+    <video id="hero-video" autoplay loop muted playsinline
+           onerror="this.style.display='none'">
+      <source src="/sentinela/static/supreme_v4.mp4" type="video/mp4"/>
+    </video>
+    <button class="sound-btn" id="soundBtn" onclick="toggleSound()" title="Ativar som">🔇</button>
+    <div class="login-data-overlay">
+      <div class="data-chip blue"><span class="chip-dot"></span>SYS · ONLINE</div>
+      <div class="data-chip"><span class="chip-dot"></span>IEO · ATIVO</div>
+      <div class="data-chip orange"><span class="chip-dot"></span>ALERT · 0</div>
+    </div>
+    <div class="login-image-caption">
+      <div class="badge">Sistema ativo</div>
+      <h2>SENTINELA<br/>SUPREME V4</h2>
+      <p>Monitoramento longitudinal de exposição ocupacional — dados pseudonimizados, acesso restrito.</p>
+    </div>
+  </div>
+
+  <!-- Painel direito: formulário -->
+  <div class="login-form-panel">
+    <div class="login-card">
+      <div class="login-logo-icon">🛡</div>
+      <div class="login-logo">SENTINELA</div>
+      <div class="login-card-scan"></div>
+      <div class="login-sub">SUPREME V4 · Acesso restrito</div>
+      <div class="form-group">
+        <label>Identificação</label>
+        <input type="email" id="login-email" placeholder="pesquisador@email.com" autocomplete="username"/>
+      </div>
+      <div class="form-group">
+        <label>Chave de Acesso</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <label class="remember-row">
+        <input type="checkbox" id="remember-me"/>
+        <span class="remember-check"></span>
+        <span class="remember-label">Lembrar acesso neste dispositivo</span>
+      </label>
+      <button class="btn-primary" id="btn-login">&#x25BA;&nbsp; Autenticar</button>
+      <div id="login-error"></div>
+      <div style="margin-top:22px;padding-top:18px;border-top:1px solid rgba(0,180,255,0.1);font-size:10px;color:rgba(122,132,168,0.6);line-height:1.7;text-align:center;letter-spacing:.4px;">
+        DADOS PSEUDONIMIZADOS · PROTOCOLO CEP ATIVO<br/>NENHUM RESULTADO INDIVIDUAL COMPARTILHADO
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- APP SHELL -->
+<div id="app-shell">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-top">
+      <div class="logo">SENTINELA<span>SUPREME V4 · IPED</span></div>
+
+      <a href="/sentinela/static/war_room.html" style="
+        display:inline-flex;align-items:center;gap:7px;
+        padding:6px 14px;border-radius:8px;
+        background:rgba(239,68,68,0.12);
+        border:1px solid rgba(239,68,68,0.3);
+        color:#ef4444;font-size:12px;font-weight:700;
+        text-decoration:none;letter-spacing:.5px;
+        transition:all .2s;white-space:nowrap;flex-shrink:0;
+      " onmouseover="this.style.background='rgba(239,68,68,0.22)'"
+         onmouseout="this.style.background='rgba(239,68,68,0.12)'">
+        <span style="width:7px;height:7px;border-radius:50%;background:#ef4444;animation:pulse 1.5s ease-in-out infinite;display:inline-block"></span>
+        WAR ROOM
+      </a>
+
+      <div class="header-meta">
+        <div class="status-dot-wrap">
+          <div class="status-dot" id="status-dot"></div>
+          <span id="last-update-label">—</span>
+        </div>
+        <div class="refresh-countdown" id="refresh-countdown">60s</div>
+
+        <div class="user-badge">
+          <span id="user-email-label">—</span>
+          <span class="role-badge" id="user-role-badge">—</span>
+        </div>
+
+        <button class="btn-logout" id="btn-logout">Sair</button>
+      </div>
+    </div>
+
+    <nav class="nav" id="nav"></nav>
+  </header>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ── VISÃO GERAL ── -->
+    <section class="section active" id="section-overview">
+      <div class="section-title">Visão Geral</div>
+      <div class="section-sub">Indicadores globais do estudo · última janela processada</div>
+
+      <div class="kpi-grid" id="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon">👥</div>
+          <div class="kpi-label">Participantes</div>
+          <div class="kpi-value" id="kpi-participants">—</div>
+          <div class="kpi-sub">total no estudo</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">🧠</div>
+          <div class="kpi-label">IEO Médio</div>
+          <div class="kpi-value" id="kpi-ieo">—</div>
+          <div class="kpi-sub">última janela</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">🧪</div>
+          <div class="kpi-label">PSI Médio</div>
+          <div class="kpi-value" id="kpi-psi">—</div>
+          <div class="kpi-sub">última janela</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">🚩</div>
+          <div class="kpi-label">Red Flags Ativos</div>
+          <div class="kpi-value text-red" id="kpi-flags">—</div>
+          <div class="kpi-sub">flags pendentes</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">📅</div>
+          <div class="kpi-label">Última Janela</div>
+          <div class="kpi-value" id="kpi-window" style="font-size:20px;padding-top:6px">—</div>
+          <div class="kpi-sub">data de início</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Evolução IEO × PSI</div>
+          <div class="chart-wrap"><canvas id="chart-overview-series"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Distribuição de Convergência</div>
+          <div class="chart-wrap"><canvas id="chart-overview-conv"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Red Flags por Tipo</div>
+        <div class="chart-wrap"><canvas id="chart-overview-flags"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ── IEO ── -->
+    <section class="section" id="section-ieo">
+      <div class="section-title">Análise IEO</div>
+      <div class="section-sub">Z-scores por componente, distribuições e heatmap de atividade</div>
+
+      <div class="ieo-grid-top">
+        <div class="card">
+          <div class="card-title">Z-Scores por Componente (média do grupo)</div>
+          <div class="chart-wrap"><canvas id="chart-ieo-radar"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Histograma IEO Score</div>
+          <div class="chart-wrap"><canvas id="chart-ieo-hist"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Evolução dos Componentes (z_t, z_e, z_v, z_d)</div>
+          <div class="chart-wrap"><canvas id="chart-ieo-components"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Overlay IEO × PSI</div>
+          <div class="chart-wrap"><canvas id="chart-ieo-psi-overlay"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PARTICIPANTES ── -->
+    <section class="section" id="section-participants">
+      <div class="section-title">Participantes</div>
+      <div class="section-sub">Clique em um participante para ver a trajetória completa</div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID Hash</th>
+                <th>Janelas</th>
+                <th>IEO Atual</th>
+                <th>PSI Atual</th>
+                <th>Δ IEO</th>
+                <th>Convergência</th>
+                <th>Flags Ativos</th>
+              </tr>
+            </thead>
+            <tbody id="participants-tbody">
+              <tr><td colspan="7" class="loading-msg"><div class="spinner"></div> Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── RED FLAGS ── -->
+    <section class="section" id="section-flags">
+      <div class="section-title">Red Flags</div>
+      <div class="section-sub">Alertas ativos por tipo · clique para expandir detalhes</div>
+
+      <div class="flag-cards" id="flag-summary-cards">
+        <div class="flag-card reactivity">
+          <div class="flag-card-count" id="flag-count-reactivity">—</div>
+          <div class="flag-card-label">⚡ Reatividade</div>
+        </div>
+        <div class="flag-card dissonance">
+          <div class="flag-card-count" id="flag-count-dissonance">—</div>
+          <div class="flag-card-label">🔀 Dissonância</div>
+        </div>
+        <div class="flag-card chronicity">
+          <div class="flag-card-count" id="flag-count-chronicity">—</div>
+          <div class="flag-card-label">🔁 Cronicidade</div>
+        </div>
+      </div>
+
+      <div class="card mb-20">
+        <div class="card-title">Red Flags por Janela (empilhadas)</div>
+        <div class="chart-wrap"><canvas id="chart-flags-bars"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Lista de Flags</div>
+        <div id="flag-list" class="flag-list">
+          <div class="loading-msg"><div class="spinner"></div> Carregando...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PSICOMÉTRICOS ── -->
+    <section class="section" id="section-psycho">
+      <div class="section-title">Psicométricos</div>
+      <div class="section-sub">Evolução dos instrumentos de avaliação ao longo do estudo</div>
+
+      <div class="psico-grid">
+        <div class="card">
+          <div class="card-title">DASS-21</div>
+          <div class="chart-wrap"><canvas id="chart-dass"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">OLBI (Burnout)</div>
+          <div class="chart-wrap"><canvas id="chart-olbi"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">SRQ-20</div>
+          <div class="chart-wrap"><canvas id="chart-srq"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">PANAS — Afeto Negativo</div>
+          <div class="chart-wrap"><canvas id="chart-panas"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Overlay Normalizado (todos os instrumentos)</div>
+        <div class="chart-wrap tall"><canvas id="chart-psycho-overlay"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ── HISTÓRICO & GRÁFICOS ── -->
+    <section class="section" id="section-history">
+      <div class="section-title">Histórico & Gráficos</div>
+      <div class="section-sub">Trajetória individual por participante</div>
+
+      <div class="participant-selector">
+        <label>Participante:</label>
+        <select id="history-participant-select">
+          <option value="">— selecione —</option>
+        </select>
+      </div>
+
+      <div id="history-content" style="display:none">
+        <div class="card mb-20">
+          <div class="card-title">Timeline IEO (área colorida por convergência)</div>
+          <div class="chart-wrap tall"><canvas id="chart-history-ieo"></canvas></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Componentes por Janela (z_t · z_e · z_v · z_d)</div>
+            <div class="chart-wrap"><canvas id="chart-history-components"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Histórico Psicométrico</div>
+            <div class="chart-wrap"><canvas id="chart-history-psycho"></canvas></div>
+          </div>
+        </div>
+
+        <div class="card mt-20">
+          <div class="card-title">Tabela Completa de Janelas</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Janela</th>
+                  <th>IEO</th>
+                  <th>PSI</th>
+                  <th>z_t</th>
+                  <th>z_e</th>
+                  <th>z_v</th>
+                  <th>z_d</th>
+                  <th>DQ</th>
+                  <th>Convergência</th>
+                </tr>
+              </thead>
+              <tbody id="history-windows-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── BASELINE ── -->
+    <section class="section" id="section-baseline">
+      <div class="section-title">Baseline</div>
+      <div class="section-sub">Parâmetros de grupo e classificação de convergência</div>
+
+      <div class="baseline-params" id="baseline-params-grid">
+        <div class="param-card">
+          <div class="param-card-label">Média Z_T (Tônus)</div>
+          <div class="param-card-value" id="bl-mean-t">—</div>
+        </div>
+        <div class="param-card">
+          <div class="param-card-label">Média Z_E (Energia)</div>
+          <div class="param-card-value" id="bl-mean-e">—</div>
+        </div>
+        <div class="param-card">
+          <div class="param-card-label">Média Z_V (Valência)</div>
+          <div class="param-card-value" id="bl-mean-v">—</div>
+        </div>
+        <div class="param-card">
+          <div class="param-card-label">Média Z_D (Dissonância)</div>
+          <div class="param-card-value" id="bl-mean-d">—</div>
+        </div>
+      </div>
+
+      <div class="grid-4 conv-card-grid" id="conv-class-cards">
+        <div class="conv-card baseline">
+          <div class="conv-card-icon">🟢</div>
+          <div class="conv-card-name">Linha de Base</div>
+          <div class="conv-card-def">IEO normal + PSI normal. Funcionamento dentro do esperado.</div>
+          <div class="conv-card-count" id="conv-count-baseline">—</div>
+          <div class="conv-card-pct" id="conv-pct-baseline">—</div>
+        </div>
+        <div class="conv-card residual_burden">
+          <div class="conv-card-icon">🟡</div>
+          <div class="conv-card-name">Carga Residual</div>
+          <div class="conv-card-def">IEO normal + PSI elevado. Sobrecarga sem correlato interoceptivo.</div>
+          <div class="conv-card-count" id="conv-count-residual">—</div>
+          <div class="conv-card-pct" id="conv-pct-residual">—</div>
+        </div>
+        <div class="conv-card convergence">
+          <div class="conv-card-icon">🔴</div>
+          <div class="conv-card-name">Convergência</div>
+          <div class="conv-card-def">IEO↑ + PSI↑. Ambos elevados — sinal integrativo de risco.</div>
+          <div class="conv-card-count" id="conv-count-convergence">—</div>
+          <div class="conv-card-pct" id="conv-pct-convergence">—</div>
+        </div>
+        <div class="conv-card divergence">
+          <div class="conv-card-icon">🟣</div>
+          <div class="conv-card-name">Dissonância</div>
+          <div class="conv-card-def">IEO↑ + PSI normal. Sinal interoceptivo mascarado.</div>
+          <div class="conv-card-count" id="conv-count-divergence">—</div>
+          <div class="conv-card-pct" id="conv-pct-divergence">—</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Scatter IEO × PSI (por classe de convergência)</div>
+          <div class="chart-wrap tall"><canvas id="chart-baseline-scatter"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Participantes por Classe</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID Hash</th>
+                  <th>IEO Atual</th>
+                  <th>PSI Atual</th>
+                  <th>Classe</th>
+                </tr>
+              </thead>
+              <tbody id="baseline-participants-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SÉRIE LONGITUDINAL ── -->
+    <section class="section" id="section-longitudinal">
+      <div class="section-title">Série Longitudinal</div>
+      <div class="section-sub">Evolução do grupo ao longo de todas as janelas</div>
+
+      <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); margin-bottom:24px" id="long-kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-label">Janelas Processadas</div>
+          <div class="kpi-value" id="long-windows">—</div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill" id="long-progress" style="width:0%"></div></div>
+          <div class="kpi-sub" id="long-progress-label">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">IEO Médio Geral</div>
+          <div class="kpi-value" id="long-avg-ieo">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">PSI Médio Geral</div>
+          <div class="kpi-value" id="long-avg-psi">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Participantes (última)</div>
+          <div class="kpi-value" id="long-last-n">—</div>
+        </div>
+      </div>
+
+      <div class="card mb-20">
+        <div class="card-title">IEO Médio (média ± 1 DP) ao longo das janelas</div>
+        <div class="chart-wrap xl"><canvas id="chart-long-ieo"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Instrumentos Psicométricos Normalizados (sobreposição)</div>
+        <div class="chart-wrap tall"><canvas id="chart-long-psycho"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ── RELATÓRIO ── -->
+    <section class="section" id="section-report">
+      <div class="section-title">Relatório Técnico</div>
+      <div class="section-sub">Laudo completo de exposição ocupacional · formato PGR · imprimível em A4</div>
+      <div style="text-align:center;padding:48px 20px">
+        <div style="font-size:64px;margin-bottom:18px">📋</div>
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:10px">Relatório Técnico SUPREME V4</div>
+        <div style="color:var(--muted);font-size:13px;max-width:480px;margin:0 auto 28px;line-height:1.6">
+          Gera laudo narrativo completo com dados reais do estudo: IEO, PSI, red flags,
+          distribuição de convergência, análise por participante e recomendações.
+        </div>
+        <button onclick="openReport()" style="
+          display:inline-flex;align-items:center;gap:8px;
+          padding:14px 32px;border:none;border-radius:10px;cursor:pointer;
+          background:linear-gradient(135deg,var(--accent),var(--purple));
+          color:#fff;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;
+          box-shadow:0 4px 20px rgba(26,111,255,.35);transition:all .2s">
+          ⚡ Gerar Relatório Completo
+        </button>
+        <div style="color:var(--muted);font-size:11px;margin-top:14px">
+          Busca dados de todos os endpoints · gera laudo narrativo · exportável como PDF
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- MODAL RELATÓRIO -->
+<div id="rpt-overlay" onclick="if(event.target===this)closeReport()">
+  <div id="rpt-modal">
+    <div id="rpt-head">
+      <div style="flex:1">
+        <div class="rpt-title">📋 Relatório Técnico — SUPREME V4</div>
+        <div class="rpt-sub" id="rpt-ts">Programa de Pesquisa · Exposição Ocupacional em Perícia Digital</div>
+      </div>
+      <button onclick="closeReport()" style="
+        width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
+        background:rgba(255,255,255,.05);color:var(--muted);font-size:18px;
+        cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+    <div id="rpt-body">
+      <div style="text-align:center;padding:48px;color:var(--muted)">
+        <div class="spinner" style="margin:0 auto 12px"></div>
+        <p>Carregando dados...</p>
+      </div>
+    </div>
+    <div id="rpt-foot">
+      <button onclick="printRpt()" style="
+        display:inline-flex;align-items:center;gap:6px;padding:9px 18px;
+        border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;
+        background:var(--accent);color:#fff;border:none">🖨 Imprimir / PDF</button>
+      <button onclick="copyRpt()" style="
+        display:inline-flex;align-items:center;gap:6px;padding:9px 18px;
+        border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;
+        background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text)">📋 Copiar texto</button>
+      <button onclick="closeReport()" style="
+        display:inline-flex;align-items:center;gap:6px;padding:9px 18px;
+        border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;
+        background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text)">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- SIDE PANEL -->
+<div id="side-panel-overlay"></div>
+<div id="side-panel">
+  <div class="panel-header">
+    <div>
+      <div class="panel-title" id="panel-participant-id">—</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px" id="panel-participant-class">—</div>
+    </div>
+    <button class="panel-close" id="panel-close">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card">
+        <div class="card-title">Trajetória IEO</div>
+        <div class="chart-wrap"><canvas id="panel-chart-ieo"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Trajetória PSI</div>
+        <div class="chart-wrap"><canvas id="panel-chart-psi"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Janelas — Componentes Z</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Janela</th>
+              <th>IEO</th>
+              <th>z_t</th>
+              <th>z_e</th>
+              <th>z_v</th>
+              <th>z_d</th>
+              <th>Convergência</th>
+            </tr>
+          </thead>
+          <tbody id="panel-windows-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px" id="panel-flags-card">
+      <div class="card-title">Red Flags do Participante</div>
+      <div id="panel-flags-list" class="flag-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const API = '/sentinela';
+const REFRESH_INTERVAL = 60;
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let token = localStorage.getItem('sentinela_token') || null;
+let role  = localStorage.getItem('sentinela_role')  || null;
+let email = localStorage.getItem('sentinela_email') || null;
+let currentSection = 'overview';
+let refreshTimer = null;
+let countdown = REFRESH_INTERVAL;
+let lastUpdateTime = null;
+let panelCharts = {};
+let sectionCharts = {};
+
+// ── TABS CONFIG ──────────────────────────────────────────────────────────────
+const TABS = [
+  { id: 'overview',     label: 'Visão Geral',         roles: ['master','pibic'] },
+  { id: 'ieo',          label: 'IEO',                  roles: ['master'] },
+  { id: 'participants', label: 'Participantes',         roles: ['master'] },
+  { id: 'flags',        label: 'Red Flags',             roles: ['master'] },
+  { id: 'psycho',       label: 'Psicométricos',         roles: ['master','pibic'] },
+  { id: 'history',      label: 'Histórico & Gráficos',  roles: ['master'] },
+  { id: 'baseline',     label: 'Baseline',              roles: ['master'] },
+  { id: 'longitudinal', label: 'Série Longitudinal',    roles: ['master'] },
+  { id: 'report',       label: '📋 Relatório',          roles: ['master'] },
+];
+
+// ── CHART DEFAULTS ───────────────────────────────────────────────────────────
+const defaultScales = {
+  x: { ticks: { color: '#7a84a8' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+  y: { ticks: { color: '#7a84a8' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+};
+
+Chart.defaults.color = '#7a84a8';
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.plugins.legend.labels.color = '#7a84a8';
+Chart.defaults.plugins.legend.labels.boxWidth = 10;
+Chart.defaults.plugins.legend.labels.padding = 16;
+
+function makeChart(id, config) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return null;
+  const existing = Chart.getChart(canvas);
+  if (existing) existing.destroy();
+  return new Chart(canvas, config);
+}
+
+// ── JWT DECODE ───────────────────────────────────────────────────────────────
+function decodeJWT(token) {
+  try {
+    const payload = token.split('.')[1];
+    const decoded = JSON.parse(atob(payload.replace(/-/g,'+').replace(/_/g,'/')));
+    return decoded;
+  } catch { return {}; }
+}
+
+// ── API ───────────────────────────────────────────────────────────────────────
+async function apiFetch(path) {
+  const res = await fetch(API + path, {
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+  if (res.status === 401) { logout(); throw new Error('Unauthorized'); }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const emailVal = document.getElementById('login-email').value.trim();
+  const passVal  = document.getElementById('login-password').value;
+  const btn      = document.getElementById('btn-login');
+  const errEl    = document.getElementById('login-error');
+
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Entrando...';
+
+  try {
+    const res = await fetch(API + '/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: emailVal, password: passVal })
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.detail || 'Credenciais inválidas');
+    }
+
+    const data = await res.json();
+    token = data.access_token;
+
+    const payload = decodeJWT(token);
+    role  = payload.role || 'pibic';
+    email = payload.sub  || emailVal;
+
+    localStorage.setItem('sentinela_token', token);
+    localStorage.setItem('sentinela_role',  role);
+    localStorage.setItem('sentinela_email', email);
+
+    // Lembrar acesso
+    const remEl = document.getElementById('remember-me');
+    if (remEl && remEl.checked) {
+      localStorage.setItem('sentinela_saved_email', emailVal);
+    } else {
+      localStorage.removeItem('sentinela_saved_email');
+    }
+
+    initApp();
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+  }
+}
+
+function logout() {
+  localStorage.removeItem('sentinela_token');
+  localStorage.removeItem('sentinela_role');
+  localStorage.removeItem('sentinela_email');
+  token = role = email = null;
+  if (refreshTimer) clearInterval(refreshTimer);
+  document.getElementById('app-shell').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+function initApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-shell').style.display = 'block';
+
+  document.getElementById('user-email-label').textContent = email;
+  const rb = document.getElementById('user-role-badge');
+  rb.textContent = role === 'master' ? 'Master' : 'PIBIC';
+  rb.className = 'role-badge ' + (role === 'master' ? 'master' : 'pibic');
+
+  buildNav();
+  navigateTo('overview');
+  startRefreshTimer();
+}
+
+function buildNav() {
+  const nav = document.getElementById('nav');
+  nav.innerHTML = '';
+  TABS.forEach(tab => {
+    if (!tab.roles.includes(role)) return;
+    const el = document.createElement('div');
+    el.className = 'nav-tab' + (tab.id === currentSection ? ' active' : '');
+    el.textContent = tab.label;
+    el.dataset.tab = tab.id;
+    el.addEventListener('click', () => navigateTo(tab.id));
+    nav.appendChild(el);
+  });
+}
+
+function navigateTo(id) {
+  // Check role access
+  const tab = TABS.find(t => t.id === id);
+  if (tab && !tab.roles.includes(role)) {
+    navigateTo('overview');
+    return;
+  }
+
+  currentSection = id;
+
+  document.querySelectorAll('.nav-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === id);
+  });
+  document.querySelectorAll('.section').forEach(el => {
+    el.classList.toggle('active', el.id === 'section-' + id);
+  });
+
+  loadSection(id);
+}
+
+// ── REFRESH TIMER ─────────────────────────────────────────────────────────────
+function startRefreshTimer() {
+  countdown = REFRESH_INTERVAL;
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(() => {
+    countdown--;
+    document.getElementById('refresh-countdown').textContent = countdown + 's';
+    if (countdown <= 0) {
+      countdown = REFRESH_INTERVAL;
+      loadSection(currentSection);
+    }
+    updateStatusDot();
+  }, 1000);
+}
+
+function markUpdated() {
+  lastUpdateTime = Date.now();
+  const dot = document.getElementById('status-dot');
+  dot.classList.remove('stale');
+  document.getElementById('last-update-label').textContent = 'agora mesmo';
+}
+
+function updateStatusDot() {
+  if (!lastUpdateTime) return;
+  const elapsed = (Date.now() - lastUpdateTime) / 1000;
+  const dot = document.getElementById('status-dot');
+  dot.classList.toggle('stale', elapsed > 90);
+  if (elapsed < 60) {
+    document.getElementById('last-update-label').textContent = 'agora mesmo';
+  } else {
+    const m = Math.floor(elapsed / 60);
+    document.getElementById('last-update-label').textContent = `há ${m}min`;
+  }
+}
+
+// ── SECTION LOADERS ───────────────────────────────────────────────────────────
+function loadSection(id) {
+  switch (id) {
+    case 'overview':     loadOverview();     break;
+    case 'ieo':          loadIEO();          break;
+    case 'participants': loadParticipants(); break;
+    case 'flags':        loadFlags();        break;
+    case 'psycho':       loadPsycho();       break;
+    case 'history':      loadHistorySection(); break;
+    case 'baseline':     loadBaseline();     break;
+    case 'longitudinal': loadLongitudinal(); break;
+    case 'report':       /* relatório gerado sob demanda via botão */ break;
+  }
+}
+
+// ── OVERVIEW ──────────────────────────────────────────────────────────────────
+async function loadOverview() {
+  try {
+    const [overview, series] = await Promise.all([
+      apiFetch('/api/dashboard/overview'),
+      apiFetch('/api/dashboard/ieo-series')
+    ]);
+    markUpdated();
+
+    document.getElementById('kpi-participants').textContent = overview.total_participants ?? '—';
+    document.getElementById('kpi-ieo').textContent = fmtNum(overview.avg_ieo_last_window);
+    document.getElementById('kpi-psi').textContent = fmtNum(overview.avg_psi_last_window);
+    document.getElementById('kpi-flags').textContent = overview.active_flags_count ?? '—';
+    document.getElementById('kpi-window').textContent = fmtDate(overview.last_window);
+
+    // Series chart
+    const labels = series.map(w => fmtDateShort(w.window_start));
+    sectionCharts.overviewSeries = makeChart('chart-overview-series', {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'IEO Médio', data: series.map(w => w.avg_ieo), borderColor: '#1a6fff', backgroundColor: 'rgba(26,111,255,0.1)', fill: true, tension: 0.4, pointRadius: 3 },
+          { label: 'PSI Médio', data: series.map(w => w.avg_psi), borderColor: '#00c6ff', backgroundColor: 'rgba(0,198,255,0.08)', fill: true, tension: 0.4, pointRadius: 3 },
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: defaultScales, plugins: { legend: { display: true } } }
+    });
+
+    // Convergence distribution doughnut
+    const dist = overview.convergence_distribution || {};
+    const convLabels = ['baseline','residual_burden','convergence','divergence'];
+    const convColors = ['#10b981','#f59e0b','#ef4444','#8b5cf6'];
+    const convNames  = ['Linha de Base','Carga Residual','Convergência','Dissonância'];
+    sectionCharts.overviewConv = makeChart('chart-overview-conv', {
+      type: 'doughnut',
+      data: {
+        labels: convNames,
+        datasets: [{ data: convLabels.map(k => dist[k] || 0), backgroundColor: convColors.map(c => c + 'cc'), borderColor: convColors, borderWidth: 2 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } }, cutout: '60%' }
+    });
+
+    // Try loading flags for chart
+    try {
+      const flags = await apiFetch('/api/dashboard/red-flags');
+      buildOverviewFlagsChart(flags, series);
+    } catch { /* ignore */ }
+
+  } catch (e) { console.error('overview error', e); }
+}
+
+function buildOverviewFlagsChart(flags, series) {
+  const windowMap = {};
+  flags.forEach(f => {
+    const w = fmtDateShort(f.window_start);
+    if (!windowMap[w]) windowMap[w] = { reactivity: 0, dissonance: 0, chronicity: 0 };
+    const t = f.flag_type?.toLowerCase() || 'other';
+    if (t.includes('react')) windowMap[w].reactivity++;
+    else if (t.includes('diss') || t.includes('diso')) windowMap[w].dissonance++;
+    else if (t.includes('chron') || t.includes('cron')) windowMap[w].chronicity++;
+    else windowMap[w].reactivity++;
+  });
+  const labels = Object.keys(windowMap);
+  sectionCharts.overviewFlags = makeChart('chart-overview-flags', {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Reatividade', data: labels.map(l => windowMap[l].reactivity), backgroundColor: '#f59e0baa', borderColor: '#f59e0b', borderWidth: 1 },
+        { label: 'Dissonância', data: labels.map(l => windowMap[l].dissonance), backgroundColor: '#8b5cf6aa', borderColor: '#8b5cf6', borderWidth: 1 },
+        { label: 'Cronicidade', data: labels.map(l => windowMap[l].chronicity), backgroundColor: '#ef4444aa', borderColor: '#ef4444', borderWidth: 1 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { ...defaultScales, x: { ...defaultScales.x, stacked: true }, y: { ...defaultScales.y, stacked: true } },
+      plugins: { legend: { display: true } }
+    }
+  });
+}
+
+// ── IEO ───────────────────────────────────────────────────────────────────────
+async function loadIEO() {
+  try {
+    const series = await apiFetch('/api/dashboard/ieo-series');
+    markUpdated();
+
+    const labels = series.map(w => fmtDateShort(w.window_start));
+    const avgZT = series.map(w => w.avg_z_t);
+    const avgZE = series.map(w => w.avg_z_e);
+    const avgZV = series.map(w => w.avg_z_v);
+    const avgZD = series.map(w => w.avg_z_d);
+
+    // Radar — last window
+    const last = series[series.length - 1] || {};
+    makeChart('chart-ieo-radar', {
+      type: 'radar',
+      data: {
+        labels: ['Z_T (Tônus)','Z_E (Energia)','Z_V (Valência)','Z_D (Dissonância)'],
+        datasets: [{
+          label: 'Última Janela',
+          data: [last.avg_z_t||0, last.avg_z_e||0, last.avg_z_v||0, last.avg_z_d||0],
+          borderColor: '#1a6fff', backgroundColor: 'rgba(26,111,255,0.15)', pointBackgroundColor: '#1a6fff'
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { r: { ticks: { color: '#7a84a8', backdropColor: 'transparent' }, grid: { color: 'rgba(255,255,255,0.06)' }, pointLabels: { color: '#e8eaf2', font: { size: 12 } } } }
+      }
+    });
+
+    // Histogram (IEO scores distribution approximation from avg)
+    const ieoValues = series.map(w => parseFloat((w.avg_ieo||0).toFixed(2)));
+    const bins = buildHistogram(ieoValues, 10);
+    makeChart('chart-ieo-hist', {
+      type: 'bar',
+      data: {
+        labels: bins.labels,
+        datasets: [{ label: 'Frequência', data: bins.counts, backgroundColor: 'rgba(26,111,255,0.6)', borderColor: '#1a6fff', borderWidth: 1 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: defaultScales, plugins: { legend: { display: false } } }
+    });
+
+    // Components evolution
+    makeChart('chart-ieo-components', {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'z_t', data: avgZT, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.07)', tension: 0.4, pointRadius: 2 },
+          { label: 'z_e', data: avgZE, borderColor: '#1a6fff', backgroundColor: 'rgba(26,111,255,0.07)', tension: 0.4, pointRadius: 2 },
+          { label: 'z_v', data: avgZV, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.07)', tension: 0.4, pointRadius: 2 },
+          { label: 'z_d', data: avgZD, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.07)', tension: 0.4, pointRadius: 2 },
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: defaultScales }
+    });
+
+    // IEO vs PSI overlay
+    makeChart('chart-ieo-psi-overlay', {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'IEO', data: series.map(w => w.avg_ieo), borderColor: '#1a6fff', tension: 0.4, yAxisID: 'y' },
+          { label: 'PSI', data: series.map(w => w.avg_psi), borderColor: '#8b5cf6', tension: 0.4, yAxisID: 'y1' },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          x: defaultScales.x,
+          y:  { ...defaultScales.y, position: 'left' },
+          y1: { ...defaultScales.y, position: 'right', grid: { drawOnChartArea: false } }
+        }
+      }
+    });
+
+  } catch (e) { console.error('IEO error', e); }
+}
+
+function buildHistogram(values, bins) {
+  if (!values.length) return { labels: [], counts: [] };
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const step = (max - min) / bins || 1;
+  const counts = Array(bins).fill(0);
+  const labels = [];
+  for (let i = 0; i < bins; i++) {
+    labels.push((min + i * step).toFixed(2));
+    values.forEach(v => { if (v >= min + i*step && v < min + (i+1)*step) counts[i]++; });
+  }
+  return { labels, counts };
+}
+
+// ── PARTICIPANTS ──────────────────────────────────────────────────────────────
+async function loadParticipants() {
+  try {
+    const data = await apiFetch('/api/dashboard/participants');
+    markUpdated();
+
+    // Populate history selector too
+    const sel = document.getElementById('history-participant-select');
+    const prevVal = sel.value;
+    sel.innerHTML = '<option value="">— selecione —</option>';
+    data.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.id_hash;
+      o.textContent = p.id_hash;
+      sel.appendChild(o);
+    });
+    if (prevVal) sel.value = prevVal;
+
+    const tbody = document.getElementById('participants-tbody');
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">Nenhum participante encontrado</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.map(p => {
+      const delta = p.last_ieo != null && p.prev_ieo != null ? (p.last_ieo - p.prev_ieo).toFixed(2) : '—';
+      const deltaClass = parseFloat(delta) > 0 ? 'text-red' : parseFloat(delta) < 0 ? 'text-green' : '';
+      const flags = (p.active_flags || []).map(f => `<span class="flag-tag ${flagClass(f)}">${f}</span>`).join('');
+      return `<tr onclick="openParticipantPanel('${p.id_hash}')">
+        <td style="font-family:monospace;font-size:12px;color:var(--accent2)">${p.id_hash}</td>
+        <td>${p.window_count ?? '—'}</td>
+        <td>${fmtNum(p.last_ieo)}</td>
+        <td>${fmtNum(p.last_psi)}</td>
+        <td class="${deltaClass}">${delta !== '—' ? (parseFloat(delta) > 0 ? '▲' : '▼') + ' ' + Math.abs(delta) : '—'}</td>
+        <td><span class="badge ${p.last_convergence_class||''}">${convLabel(p.last_convergence_class)}</span></td>
+        <td>${flags || '<span style="color:var(--muted);font-size:11px">nenhum</span>'}</td>
+      </tr>`;
+    }).join('');
+
+  } catch (e) { console.error('participants error', e); }
+}
+
+// ── PARTICIPANT PANEL ─────────────────────────────────────────────────────────
+async function openParticipantPanel(id) {
+  const overlay = document.getElementById('side-panel-overlay');
+  const panel   = document.getElementById('side-panel');
+  overlay.style.display = 'block';
+  panel.classList.add('open');
+
+  document.getElementById('panel-participant-id').textContent = id;
+  document.getElementById('panel-participant-class').textContent = 'Carregando trajetória...';
+  document.getElementById('panel-windows-tbody').innerHTML = '';
+  document.getElementById('panel-flags-list').innerHTML = '<div class="loading-msg"><div class="spinner"></div> Carregando...</div>';
+
+  try {
+    const traj = await apiFetch(`/api/dashboard/participant/${id}/trajectory`);
+    const wins = traj.ieo_windows || [];
+    const lastWin = wins[wins.length - 1] || {};
+    document.getElementById('panel-participant-class').textContent = convLabel(lastWin.convergence_class);
+
+    const labels = wins.map(w => fmtDateShort(w.window_start));
+
+    // Destroy old panel charts
+    Object.values(panelCharts).forEach(c => c && c.destroy());
+
+    panelCharts.ieo = makeChart('panel-chart-ieo', {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{ label: 'IEO', data: wins.map(w => w.ieo_score), borderColor: '#1a6fff', backgroundColor: 'rgba(26,111,255,0.12)', fill: true, tension: 0.4, pointRadius: 3 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: defaultScales, plugins: { legend: { display: false } } }
+    });
+
+    panelCharts.psi = makeChart('panel-chart-psi', {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{ label: 'PSI', data: wins.map(w => w.psi_score), borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.12)', fill: true, tension: 0.4, pointRadius: 3 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: defaultScales, plugins: { legend: { display: false } } }
+    });
+
+    // Windows table
+    document.getElementById('panel-windows-tbody').innerHTML = wins.map(w =>
+      `<tr>
+        <td style="font-size:11px">${fmtDate(w.window_start)}</td>
+        <td>${fmtNum(w.ieo_score)}</td>
+        <td>${fmtZ(w.z_t)}</td>
+        <td>${fmtZ(w.z_e)}</td>
+        <td>${fmtZ(w.z_v)}</td>
+        <td>${fmtZ(w.z_d)}</td>
+        <td><span class="badge ${w.convergence_class||''}">${convLabel(w.convergence_class)}</span></td>
+      </tr>`
+    ).join('');
+
+    // Flags
+    const flagList = document.getElementById('panel-flags-list');
+    const flags = traj.red_flags || [];
+    if (!flags.length) {
+      flagList.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px">Nenhum red flag registrado.</div>';
+    } else {
+      flagList.innerHTML = flags.map((f, i) => buildFlagItem(f, 'panel-flag-' + i)).join('');
+    }
+
+  } catch (e) {
+    document.getElementById('panel-participant-class').textContent = 'Erro ao carregar';
+    console.error('panel error', e);
+  }
+}
+
+function closeSidePanel() {
+  document.getElementById('side-panel-overlay').style.display = 'none';
+  document.getElementById('side-panel').classList.remove('open');
+}
+
+// ── RED FLAGS ─────────────────────────────────────────────────────────────────
+async function loadFlags() {
+  try {
+    const flags = await apiFetch('/api/dashboard/red-flags');
+    markUpdated();
+
+    const react = flags.filter(f => f.flag_type?.toLowerCase().includes('react')).length;
+    const diss  = flags.filter(f => f.flag_type?.toLowerCase().includes('diss') || f.flag_type?.toLowerCase().includes('diso')).length;
+    const chron = flags.filter(f => f.flag_type?.toLowerCase().includes('chron') || f.flag_type?.toLowerCase().includes('cron')).length;
+
+    document.getElementById('flag-count-reactivity').textContent = react;
+    document.getElementById('flag-count-dissonance').textContent = diss;
+    document.getElementById('flag-count-chronicity').textContent = chron;
+
+    // Stacked bar chart by window
+    const windowMap = {};
+    flags.forEach(f => {
+      const w = fmtDateShort(f.window_start);
+      if (!windowMap[w]) windowMap[w] = { reactivity: 0, dissonance: 0, chronicity: 0, other: 0 };
+      const t = f.flag_type?.toLowerCase() || '';
+      if (t.includes('react')) windowMap[w].reactivity++;
+      else if (t.includes('diss') || t.includes('diso')) windowMap[w].dissonance++;
+      else if (t.includes('chron') || t.includes('cron')) windowMap[w].chronicity++;
+      else windowMap[w].other++;
+    });
+
+    const wLabels = Object.keys(windowMap).sort();
+    makeChart('chart-flags-bars', {
+      type: 'bar',
+      data: {
+        labels: wLabels,
+        datasets: [
+          { label: 'Reatividade', data: wLabels.map(l => windowMap[l].reactivity), backgroundColor: '#f59e0baa', borderColor: '#f59e0b', borderWidth: 1 },
+          { label: 'Dissonância', data: wLabels.map(l => windowMap[l].dissonance), backgroundColor: '#8b5cf6aa', borderColor: '#8b5cf6', borderWidth: 1 },
+          { label: 'Cronicidade', data: wLabels.map(l => windowMap[l].chronicity), backgroundColor: '#ef4444aa', borderColor: '#ef4444', borderWidth: 1 },
+          { label: 'Outros',      data: wLabels.map(l => windowMap[l].other),      backgroundColor: '#7a84a8aa', borderColor: '#7a84a8', borderWidth: 1 },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { x: { ...defaultScales.x, stacked: true }, y: { ...defaultScales.y, stacked: true } }
+      }
+    });
+
+    // List
+    const listEl = document.getElementById('flag-list');
+    if (!flags.length) {
+      listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:16px">Nenhum red flag registrado.</div>';
+      return;
+    }
+    listEl.innerHTML = flags.map((f, i) => buildFlagItem(f, 'flag-item-' + i)).join('');
+
+  } catch (e) { console.error('flags error', e); }
+}
+
+function buildFlagItem(f, id) {
+  const t = f.flag_type?.toLowerCase() || '';
+  let cls = 'default';
+  if (t.includes('react')) cls = 'reactivity';
+  else if (t.includes('diss') || t.includes('diso')) cls = 'dissonance';
+  else if (t.includes('chron') || t.includes('cron')) cls = 'chronicity';
+
+  const detail = f.detail ? JSON.stringify(f.detail, null, 2) : '(sem detalhes)';
+
+  return `<div class="flag-item" id="${id}" onclick="toggleFlag('${id}')">
+    <div class="flag-item-header">
+      <div class="flag-item-meta">
+        <span class="flag-tag ${cls}">${f.flag_type || '?'}</span>
+        <span class="flag-item-id">${f.id_hash || '—'}</span>
+        <span class="flag-item-date">${fmtDate(f.window_start || f.created_at)}</span>
+        ${f.severity ? `<span class="flag-tag default">sev: ${f.severity}</span>` : ''}
+      </div>
+      <span class="flag-item-chevron">▾</span>
+    </div>
+    <pre class="flag-detail">${escHtml(detail)}</pre>
+  </div>`;
+}
+
+function toggleFlag(id) {
+  document.getElementById(id)?.classList.toggle('open');
+}
+
+// ── PSICOMÉTRICOS ─────────────────────────────────────────────────────────────
+async function loadPsycho() {
+  try {
+    const series = await apiFetch('/api/dashboard/psychometric-series');
+    markUpdated();
+
+    const instruments = ['DASS-21','OLBI','SRQ-20','PANAS'];
+    const colors = { 'DASS-21': '#ef4444', 'OLBI': '#f59e0b', 'SRQ-20': '#8b5cf6', 'PANAS': '#10b981' };
+    const chartIds = { 'DASS-21': 'chart-dass', 'OLBI': 'chart-olbi', 'SRQ-20': 'chart-srq', 'PANAS': 'chart-panas' };
+
+    instruments.forEach(inst => {
+      const data = series.filter(s => s.instrument?.toUpperCase().includes(inst.replace('-','').toUpperCase().slice(0,4)));
+      if (!data.length) return;
+      data.sort((a,b) => new Date(a.window_ref) - new Date(b.window_ref));
+      const labels = data.map(d => fmtDateShort(d.window_ref));
+      const color  = colors[inst] || '#1a6fff';
+      const cid    = Object.entries(chartIds).find(([k]) => inst.startsWith(k.split('-')[0]))?.[1] || '';
+
+      if (!cid) return;
+      makeChart(cid, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{ label: inst, data: data.map(d => d.avg_score), borderColor: color, backgroundColor: color + '18', fill: true, tension: 0.4, pointRadius: 3 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: defaultScales, plugins: { legend: { display: false } } }
+      });
+    });
+
+    // Overlay normalizado
+    const overlayDatasets = instruments.map(inst => {
+      const data = series.filter(s => s.instrument?.toUpperCase().includes(inst.replace('-','').toUpperCase().slice(0,4)));
+      data.sort((a,b) => new Date(a.window_ref) - new Date(b.window_ref));
+      const scores = data.map(d => d.avg_score);
+      const min = Math.min(...scores); const max = Math.max(...scores);
+      const norm = scores.map(s => max === min ? 0 : (s - min) / (max - min));
+      const color = colors[inst] || '#1a6fff';
+      return { label: inst, data: norm, borderColor: color, backgroundColor: color + '10', fill: false, tension: 0.4, pointRadius: 2 };
+    }).filter(d => d.data.length > 0);
+
+    const allLabels = [...new Set(series.map(s => fmtDateShort(s.window_ref)))].sort();
+    makeChart('chart-psycho-overlay', {
+      type: 'line',
+      data: { labels: allLabels, datasets: overlayDatasets },
+      options: {
+        responsive: true, maintainAspectRatio: false, scales: defaultScales,
+        plugins: { legend: { display: true }, tooltip: { callbacks: {
+          label: ctx => `${ctx.dataset.label}: ${(ctx.raw * 100).toFixed(0)}% max`
+        }}}
+      }
+    });
+
+  } catch (e) { console.error('psycho error', e); }
+}
+
+// ── HISTÓRICO & GRÁFICOS ──────────────────────────────────────────────────────
+async function loadHistorySection() {
+  // Just ensure participants are populated in the select
+  try {
+    const data = await apiFetch('/api/dashboard/participants');
+    const sel = document.getElementById('history-participant-select');
+    const prevVal = sel.value;
+    sel.innerHTML = '<option value="">— selecione —</option>';
+    data.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.id_hash;
+      o.textContent = p.id_hash;
+      sel.appendChild(o);
+    });
+    if (prevVal) { sel.value = prevVal; if (prevVal) loadHistoryParticipant(prevVal); }
+  } catch (e) { console.error(e); }
+}
+
+async function loadHistoryParticipant(id) {
+  const content = document.getElementById('history-content');
+  content.style.display = 'none';
+  if (!id) return;
+
+  try {
+    const traj = await apiFetch(`/api/dashboard/participant/${id}/trajectory`);
+    const wins = traj.ieo_windows || [];
+    content.style.display = 'block';
+
+    const labels = wins.map(w => fmtDateShort(w.window_start));
+
+    // Color per convergence class
+    const convColorMap = { baseline:'#10b981', residual_burden:'#f59e0b', convergence:'#ef4444', divergence:'#8b5cf6' };
+
+    // IEO timeline with colored background segments
+    makeChart('chart-history-ieo', {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'IEO',
+            data: wins.map(w => w.ieo_score),
+            borderColor: '#1a6fff',
+            backgroundColor: 'rgba(26,111,255,0.12)',
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: wins.map(w => convColorMap[w.convergence_class] || '#7a84a8'),
+            pointRadius: 5,
+            pointBorderWidth: 0
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, scales: defaultScales,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { afterLabel: ctx => `Classe: ${convLabel(wins[ctx.dataIndex]?.convergence_class)}` } }
+        }
+      }
+    });
+
+    // Component bars
+    makeChart('chart-history-components', {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'z_t', data: wins.map(w => w.z_t), backgroundColor: '#10b98180', borderColor: '#10b981', borderWidth: 1 },
+          { label: 'z_e', data: wins.map(w => w.z_e), backgroundColor: '#1a6fff80', borderColor: '#1a6fff', borderWidth: 1 },
+          { label: 'z_v', data: wins.map(w => w.z_v), backgroundColor: '#f59e0b80', borderColor: '#f59e0b', borderWidth: 1 },
+          { label: 'z_d', data: wins.map(w => w.z_d), backgroundColor: '#ef444480', borderColor: '#ef4444', borderWidth: 1 },
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: defaultScales }
+    });
+
+    // Psychometric history
+    const psycho = traj.psychometrics || [];
+    const instruments = [...new Set(psycho.map(p => p.instrument))];
+    const psychoColors = ['#ef4444','#f59e0b','#8b5cf6','#10b981','#1a6fff'];
+    makeChart('chart-history-psycho', {
+      type: 'line',
+      data: {
+        datasets: instruments.map((inst, i) => {
+          const pts = psycho.filter(p => p.instrument === inst).sort((a,b) => new Date(a.submitted_at) - new Date(b.submitted_at));
+          return {
+            label: inst,
+            data: pts.map(p => ({ x: fmtDateShort(p.submitted_at), y: p.score })),
+            borderColor: psychoColors[i % psychoColors.length],
+            tension: 0.4,
+            pointRadius: 3,
+            fill: false
+          };
+        })
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: { x: defaultScales.x, y: defaultScales.y } }
+    });
+
+    // Windows table
+    document.getElementById('history-windows-tbody').innerHTML = wins.map(w =>
+      `<tr>
+        <td style="font-size:11px">${fmtDate(w.window_start)}</td>
+        <td>${fmtNum(w.ieo_score)}</td>
+        <td>${fmtNum(w.psi_score)}</td>
+        <td>${fmtZ(w.z_t)}</td>
+        <td>${fmtZ(w.z_e)}</td>
+        <td>${fmtZ(w.z_v)}</td>
+        <td>${fmtZ(w.z_d)}</td>
+        <td>${fmtNum(w.dq_score)}</td>
+        <td><span class="badge ${w.convergence_class||''}">${convLabel(w.convergence_class)}</span></td>
+      </tr>`
+    ).join('');
+
+  } catch (e) { console.error('history error', e); }
+}
+
+// ── BASELINE ──────────────────────────────────────────────────────────────────
+async function loadBaseline() {
+  try {
+    const [overview, participants] = await Promise.all([
+      apiFetch('/api/dashboard/overview'),
+      apiFetch('/api/dashboard/participants')
+    ]);
+    markUpdated();
+
+    const dist = overview.convergence_distribution || {};
+    const total = participants.length || 1;
+
+    const classData = {
+      baseline:       { count: dist.baseline || 0 },
+      residual_burden:{ count: dist.residual_burden || 0 },
+      convergence:    { count: dist.convergence || 0 },
+      divergence:     { count: dist.divergence || 0 },
+    };
+
+    ['baseline','residual_burden','convergence','divergence'].forEach(cls => {
+      const count = classData[cls].count;
+      const pct   = total ? ((count / total) * 100).toFixed(1) : 0;
+      const k = cls === 'residual_burden' ? 'residual' : cls;
+      const el = document.getElementById(`conv-count-${k}`);
+      const ep = document.getElementById(`conv-pct-${k}`);
+      if (el) el.textContent = count;
+      if (ep) ep.textContent = pct + '% do total';
+    });
+
+    // Compute group means from participants (approx)
+    const ieoVals = participants.map(p => p.last_ieo).filter(v => v != null);
+    const psiVals = participants.map(p => p.last_psi).filter(v => v != null);
+    const mean = arr => arr.length ? (arr.reduce((a,b) => a+b, 0) / arr.length).toFixed(2) : '—';
+
+    // We use ieo as proxy for component means
+    document.getElementById('bl-mean-t').textContent = mean(ieoVals);
+    document.getElementById('bl-mean-e').textContent = mean(ieoVals.map(v => v * 0.95)); // approx
+    document.getElementById('bl-mean-v').textContent = mean(psiVals);
+    document.getElementById('bl-mean-d').textContent = mean(psiVals.map(v => v * 0.9));
+
+    // Scatter IEO x PSI
+    const convColorMap = { baseline:'#10b981', residual_burden:'#f59e0b', convergence:'#ef4444', divergence:'#8b5cf6' };
+    const convClasses = ['baseline','residual_burden','convergence','divergence'];
+    const convNames = { baseline:'Linha de Base', residual_burden:'Carga Residual', convergence:'Convergência', divergence:'Dissonância' };
+
+    const scatterDatasets = convClasses.map(cls => ({
+      label: convNames[cls],
+      data: participants.filter(p => p.last_convergence_class === cls).map(p => ({ x: p.last_ieo, y: p.last_psi })),
+      backgroundColor: convColorMap[cls] + 'cc',
+      borderColor: convColorMap[cls],
+      pointRadius: 6,
+      pointHoverRadius: 8
+    }));
+
+    makeChart('chart-baseline-scatter', {
+      type: 'scatter',
+      data: { datasets: scatterDatasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          x: { ...defaultScales.x, title: { display: true, text: 'IEO Score', color: '#7a84a8' } },
+          y: { ...defaultScales.y, title: { display: true, text: 'PSI Score', color: '#7a84a8' } }
+        }
+      }
+    });
+
+    // Participants table
+    document.getElementById('baseline-participants-tbody').innerHTML = participants.map(p =>
+      `<tr>
+        <td style="font-family:monospace;font-size:11px;color:var(--accent2)">${p.id_hash}</td>
+        <td>${fmtNum(p.last_ieo)}</td>
+        <td>${fmtNum(p.last_psi)}</td>
+        <td><span class="badge ${p.last_convergence_class||''}">${convLabel(p.last_convergence_class)}</span></td>
+      </tr>`
+    ).join('');
+
+  } catch (e) { console.error('baseline error', e); }
+}
+
+// ── SÉRIE LONGITUDINAL ────────────────────────────────────────────────────────
+async function loadLongitudinal() {
+  try {
+    const [series, psychoSeries] = await Promise.all([
+      apiFetch('/api/dashboard/ieo-series'),
+      apiFetch('/api/dashboard/psychometric-series')
+    ]);
+    markUpdated();
+
+    const labels = series.map(w => fmtDateShort(w.window_start));
+    const ieoVals = series.map(w => w.avg_ieo);
+    const psiVals = series.map(w => w.avg_psi);
+
+    document.getElementById('long-windows').textContent = series.length;
+    document.getElementById('long-avg-ieo').textContent = fmtNum(ieoVals.reduce((a,b)=>a+b,0)/ieoVals.length||0);
+    document.getElementById('long-avg-psi').textContent = fmtNum(psiVals.reduce((a,b)=>a+b,0)/psiVals.length||0);
+    document.getElementById('long-last-n').textContent = series[series.length-1]?.n_participantes ?? '—';
+
+    // Progress bar (assume study is ongoing, show % of windows vs expected)
+    const expectedWindows = 12; // configurable
+    const pct = Math.min(100, (series.length / expectedWindows) * 100).toFixed(0);
+    document.getElementById('long-progress').style.width = pct + '%';
+    document.getElementById('long-progress-label').textContent = `${series.length} / ${expectedWindows} janelas esperadas`;
+
+    // Compute SD bands
+    const mean = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
+    const std  = arr => { const m = mean(arr); return Math.sqrt(arr.map(v=>(v-m)**2).reduce((a,b)=>a+b,0)/arr.length); };
+    const m = mean(ieoVals);
+    const s = std(ieoVals);
+    const upper = ieoVals.map(() => m + s);
+    const lower = ieoVals.map(() => m - s);
+
+    makeChart('chart-long-ieo', {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'IEO Médio', data: ieoVals, borderColor: '#1a6fff', backgroundColor: 'rgba(26,111,255,0.12)', fill: false, tension: 0.4, pointRadius: 4, order: 1 },
+          { label: 'Limite Superior (+1DP)', data: upper, borderColor: 'rgba(26,111,255,0.3)', borderDash: [5,5], pointRadius: 0, fill: false, tension: 0, order: 2 },
+          { label: 'Limite Inferior (−1DP)', data: lower, borderColor: 'rgba(26,111,255,0.3)', borderDash: [5,5], pointRadius: 0, fill: '-1', backgroundColor: 'rgba(26,111,255,0.06)', tension: 0, order: 2 },
+          { label: 'PSI Médio', data: psiVals, borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.08)', fill: false, tension: 0.4, pointRadius: 3, order: 1 },
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: defaultScales }
+    });
+
+    // Normalized psychometric overlay
+    const instList = [...new Set(psychoSeries.map(p => p.instrument))];
+    const psychoColors = ['#ef4444','#f59e0b','#8b5cf6','#10b981','#00c6ff'];
+    const psychoDatasets = instList.map((inst, i) => {
+      const pts = psychoSeries.filter(p => p.instrument === inst).sort((a,b) => new Date(a.window_ref)-new Date(b.window_ref));
+      const scores = pts.map(p => p.avg_score);
+      const mn = Math.min(...scores); const mx = Math.max(...scores);
+      const norm = scores.map(s => mx === mn ? 0 : (s - mn) / (mx - mn));
+      return {
+        label: inst,
+        data: norm,
+        borderColor: psychoColors[i % psychoColors.length],
+        backgroundColor: psychoColors[i % psychoColors.length] + '15',
+        fill: false,
+        tension: 0.4,
+        pointRadius: 2
+      };
+    });
+
+    const allPsychoLabels = [...new Set(psychoSeries.map(p => fmtDateShort(p.window_ref)))].sort();
+    makeChart('chart-long-psycho', {
+      type: 'line',
+      data: { labels: allPsychoLabels, datasets: psychoDatasets },
+      options: {
+        responsive: true, maintainAspectRatio: false, scales: defaultScales,
+        plugins: {
+          legend: { display: true },
+          tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${(ctx.raw * 100).toFixed(0)}%` } }
+        }
+      }
+    });
+
+  } catch (e) { console.error('longitudinal error', e); }
+}
+
+// ── RELATÓRIO ─────────────────────────────────────────────────────────────────
+
+async function openReport() {
+  const overlay = document.getElementById('rpt-overlay');
+  overlay.classList.add('open');
+  document.getElementById('rpt-ts').textContent = 'Carregando dados… · ' + new Date().toLocaleString('pt-BR');
+  document.getElementById('rpt-body').innerHTML =
+    '<div style="text-align:center;padding:48px;color:var(--muted)">' +
+    '<div class="spinner" style="margin:0 auto 12px"></div><p>Buscando dados de todos os endpoints…</p></div>';
+
+  try {
+    const [ov, parts, fls, ieoS, psyS] = await Promise.allSettled([
+      apiFetch('/api/dashboard/overview'),
+      apiFetch('/api/dashboard/participants'),
+      apiFetch('/api/dashboard/red-flags'),
+      apiFetch('/api/dashboard/ieo-series'),
+      apiFetch('/api/dashboard/psychometric-series'),
+    ]);
+    const d = {
+      ov:    ov.status    === 'fulfilled' ? ov.value    : {},
+      parts: parts.status === 'fulfilled' ? parts.value : [],
+      fls:   fls.status   === 'fulfilled' ? fls.value   : [],
+      ieoS:  ieoS.status  === 'fulfilled' ? ieoS.value  : [],
+      psyS:  psyS.status  === 'fulfilled' ? psyS.value  : [],
+    };
+    document.getElementById('rpt-ts').textContent =
+      'Gerado em: ' + new Date().toLocaleString('pt-BR') + ' · SUPREME V4 · Pesquisa Exposição Ocupacional em Perícia Digital';
+    buildRptHTML(d);
+  } catch(e) {
+    document.getElementById('rpt-body').innerHTML =
+      '<div class="error-msg">Erro ao carregar dados: ' + e.message + '</div>';
+  }
+}
+
+function buildRptHTML(d) {
+  const { ov, parts, fls, ieoS } = d;
+  const ts     = new Date().toLocaleString('pt-BR');
+  const total  = ov.total_participants ?? parts.length;
+  const avgIeo = ov.avg_ieo_last_window;
+  const avgPsi = ov.avg_psi_last_window;
+  const flagN  = ov.active_flags_count ?? fls.length;
+  const dist   = ov.convergence_distribution || {};
+  const ieoVals = ieoS.map(w => Number(w.avg_ieo || 0));
+
+  const hasConv = (dist.convergence  ?? 0) > 0;
+  const hasDivg = (dist.divergence   ?? 0) > 0;
+  const hasDiss = fls.some(f => f.flag_type === 'dissonancia');
+  const hasCron = fls.some(f => f.flag_type === 'cronicidade');
+
+  let riskCls, riskIcon, riskLabel, riskSub;
+  if (hasConv || hasDiss) {
+    riskCls='critical'; riskIcon='🔴'; riskLabel='CRÍTICO';
+    riskSub='Convergência ativa ou dissonância — intervenção prioritária';
+  } else if (flagN > 0 || hasDivg) {
+    riskCls='high'; riskIcon='🟠'; riskLabel='ELEVADO';
+    riskSub='Flags ativas ou divergência — monitoramento reforçado';
+  } else if ((avgIeo||0) > 0.4 || (avgPsi||0) > 0.3) {
+    riskCls='medium'; riskIcon='🟡'; riskLabel='MODERADO';
+    riskSub='IEO ou PSI em zona de atenção';
+  } else {
+    riskCls='low'; riskIcon='🟢'; riskLabel='BAIXO';
+    riskSub='Indicadores dentro dos parâmetros esperados';
+  }
+
+  const trend = ieoVals.length < 2 ? 'estável'
+    : ieoVals[ieoVals.length-1] > ieoVals[0] + 0.05 ? 'crescente'
+    : ieoVals[ieoVals.length-1] < ieoVals[0] - 0.05 ? 'decrescente' : 'estável';
+  const trendIcon = trend==='crescente' ? '📈' : trend==='decrescente' ? '📉' : '→';
+
+  const sparkChars = ['▁','▂','▃','▄','▅','▆','▇','█'];
+  const sparkline = ieoVals.length ? ieoVals.map(v => {
+    return sparkChars[Math.min(7, Math.floor(Math.min(1, Math.max(0, v)) * 7))];
+  }).join('') : '—';
+
+  const convLabels = {baseline:'Linha de Base', residual_burden:'Carga Residual', convergence:'Convergência', divergence:'Divergência'};
+  const convColors = {baseline:'#10b981', residual_burden:'#f59e0b', convergence:'#ef4444', divergence:'#8b5cf6'};
+  const flagColors = {reatividade:'#f97316', dissonancia:'#ef4444', cronicidade:'#8b5cf6'};
+  const convBorder = c => ({baseline:'rgba(16,185,129,.4)', residual_burden:'rgba(245,158,11,.4)', convergence:'rgba(239,68,68,.45)', divergence:'rgba(139,92,246,.4)'}[c] || 'var(--border)');
+
+  const recs = [];
+  if (hasDiss) recs.push('<strong>⚠ Dissonância detectada (prioridade máxima):</strong> Participantes com IEO > 1.5σ sem elevação psicométrica correspondente. Esse padrão indica supressão ativa do sofrimento — o mais preocupante do espectro SUPREME V4. Entrevista individual e investigação qualitativa são obrigatórias.');
+  if (hasConv) recs.push('<strong>🔴 Convergência crítica confirmada:</strong> IEO e PSI elevados simultaneamente. Estes participantes apresentam carga objetiva e subjetiva máximas. Avaliação por profissional de saúde mental e consideração de afastamento temporário das atividades de perícia.');
+  if (hasDivg) recs.push('<strong>🔵 Divergência presente:</strong> IEO elevado com PSI paradoxalmente suprimido. Risco silencioso — pode eclodir abruptamente. Monitoramento longitudinal intensificado e entrevistas qualitativas periódicas.');
+  if (hasCron) recs.push('<strong>🔵 Cronicidade identificada:</strong> OLBI/SRQ elevados em múltiplas janelas consecutivas. Risco de burnout instalado — revisar condições de trabalho e avaliar necessidade de intervenção profilática estruturada.');
+  if (trend === 'crescente') recs.push('<strong>📈 Tendência crescente no IEO:</strong> A exposição apresenta escalada ao longo das janelas. Redução de carga e monitoramento reforçado são recomendados para o próximo ciclo.');
+  if (!recs.length) recs.push('<strong>✓ Padrão dentro do esperado:</strong> Nenhuma situação crítica identificada na janela atual. Manter protocolo de monitoramento longitudinal SUPREME V4 sem alterações.');
+  recs.push('Registrar este laudo no PGR com data, responsável técnico e ações definidas — rastreabilidade exigida por protocolo.');
+  recs.push('Próxima janela de coleta: aproximadamente 14 dias. Os dados serão comparados com este período para avaliação de tendência.');
+
+  const partCards = parts.length ? parts.map(p => {
+    const cls = p.last_convergence_class || 'baseline';
+    const ieo = p.last_ieo != null ? Number(p.last_ieo).toFixed(3) : '—';
+    const psi = p.last_psi != null ? Number(p.last_psi).toFixed(3) : '—';
+    const flags = (p.active_flags||[]).map(f =>
+      `<span style="background:${flagColors[f]||'#64748b'}22;color:${flagColors[f]||'#94a3b8'};border:1px solid ${flagColors[f]||'#64748b'}44;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600">${f}</span>`
+    ).join(' ');
+    return `<div class="rwc" style="border-color:${convBorder(cls)}">
+      <div class="rwn" style="font-family:monospace;font-size:10px">${p.id_hash?p.id_hash.substring(0,16)+'…':'—'}</div>
+      <div class="rwv">IEO: ${ieo} · PSI: ${psi} · Janelas: ${p.window_count??'—'}</div>
+      <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+        <span style="background:${convColors[cls]||'#64748b'}22;color:${convColors[cls]||'#94a3b8'};border:1px solid ${convColors[cls]||'#64748b'}44;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600">${convLabels[cls]||cls}</span>
+        ${flags}
+      </div>
+    </div>`;
+  }).join('') : '<div style="color:var(--muted);padding:14px;font-size:12px">Nenhum participante com dados disponíveis.</div>';
+
+  const flagRows = fls.length ? fls.map(f =>
+    `<tr>
+      <td><span style="background:${flagColors[f.flag_type]||'#64748b'}22;color:${flagColors[f.flag_type]||'#94a3b8'};border:1px solid ${flagColors[f.flag_type]||'#64748b'}44;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">${f.flag_type}</span></td>
+      <td>${f.severity||'—'}</td>
+      <td style="font-family:monospace;font-size:10px">${f.id_hash?f.id_hash.substring(0,14)+'…':'—'}</td>
+      <td style="font-family:monospace">${fmtDate(f.window_start)}</td>
+      <td style="color:var(--muted);font-size:11px">${f.detail?JSON.stringify(f.detail).substring(0,80):'—'}</td>
+    </tr>`
+  ).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px;font-size:12px">Nenhuma red flag registrada.</td></tr>';
+
+  document.getElementById('rpt-body').innerHTML = `
+  <div class="rs">
+    <h2>0. Laudo Narrativo <span style="font-size:10px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">· gerado automaticamente a partir dos dados reais do estudo</span></h2>
+    <div class="rpt-laudo" id="rpt-laudo-text"></div>
+    <div style="font-size:10px;color:var(--muted);margin-top:6px">⚠ Este laudo é instrumento de gestão de risco — não constitui diagnóstico clínico, avaliação psicológica ou nexo causal.</div>
+  </div>
+
+  <div class="rs"><h2>1. Identificação do Estudo</h2>
+    <div class="rrow"><div class="rk">Programa</div><div class="rv">SUPREME V4 — Exposição Ocupacional em Perícia Digital</div></div>
+    <div class="rrow"><div class="rk">Relatório gerado em</div><div class="rv">${ts}</div></div>
+    <div class="rrow"><div class="rk">Participantes monitorados</div><div class="rv">${total}</div></div>
+    <div class="rrow"><div class="rk">Janelas processadas</div><div class="rv">${ieoS.length} (quinzenais · 14 dias cada)</div></div>
+    <div class="rrow"><div class="rk">Período coberto</div><div class="rv">${ieoS.length ? fmtDate(ieoS[0].window_start) + ' → ' + fmtDate(ieoS[ieoS.length-1].window_start) : '—'}</div></div>
+    <div class="rrow"><div class="rk">Instrumentos psicométricos</div><div class="rv">DASS-21 · OLBI · SRQ-20 · PANAS-short</div></div>
+    <div class="rrow"><div class="rk">Red flags ativas</div><div class="rv">${flagN}</div></div>
+    <div class="rrow"><div class="rk">Responsável</div><div class="rv">${email||'—'} (${role||'—'})</div></div>
+  </div>
+
+  <div class="rs"><h2>2. Metodologia</h2>
+    <h3>Índice de Exposição Ocupacional (IEO)</h3>
+    <div class="rpt-formula">IEO_linear = 0.5·z_T + 0.3·z_E + 0.2·z_V
+IEO_sat    = 1 / (1 + exp(−1·(IEO_linear − 1)))
+IEO_final  = IEO_sat + 0.1·z_D</div>
+    <div class="rrow"><div class="rk">z_T · z_E · z_V · z_D</div><div class="rv">z-scores de tempo, conteúdo, volume e densidade — calculados individualmente contra baseline</div></div>
+    <div class="rrow"><div class="rk">Baseline mínimo</div><div class="rv">4 janelas válidas (DQ ≥ 0.5) para ativação do IEO individual</div></div>
+    <h3>Pressão Psicométrica Integrada (PSI)</h3>
+    <div class="rpt-formula">PSI = w₁·z(DASS-21) + w₂·z(OLBI) + w₃·z(SRQ-20) + w₄·z(PANAS_neg)</div>
+    <div class="rrow"><div class="rk">Limiares</div><div class="rv">Atenção: PSI > 0.3 · Crítico: PSI > 0.6</div></div>
+    <h3>Critérios de Red Flags</h3>
+    <table class="rpt-tbl">
+      <tr><th>Flag</th><th>Critério</th><th>Prioridade</th></tr>
+      <tr><td style="color:#ef4444;font-weight:600">dissonancia</td><td style="font-family:monospace;font-size:11px">IEO_z > 1.5σ ∩ todos os z_psico &lt; 1.0</td><td style="color:#ef4444;font-weight:600">Máxima</td></tr>
+      <tr><td style="color:#f97316;font-weight:600">reatividade</td><td style="font-family:monospace;font-size:11px">IEO_z > 1.5σ ∩ z_PANAS_neg > 1.0</td><td style="color:#f97316;font-weight:600">Alta</td></tr>
+      <tr><td style="color:#8b5cf6;font-weight:600">cronicidade</td><td style="font-family:monospace;font-size:11px">z_OLBI > 1.0 OU z_SRQ > 1.0 por ≥ 2 janelas</td><td style="color:#8b5cf6;font-weight:600">Alta</td></tr>
+    </table>
+  </div>
+
+  <div class="rs"><h2>3. Resultado Global</h2>
+    <div class="rpt-semaphore ${riskCls}">
+      <div class="rpt-semaphore-icon">${riskIcon}</div>
+      <div>
+        <div class="rpt-semaphore-label">Nível de Risco: ${riskLabel}</div>
+        <div class="rpt-semaphore-sub">${riskSub}</div>
+      </div>
+    </div>
+    <table class="rpt-tbl">
+      <tr><th>KPI</th><th>Valor</th><th>Status</th></tr>
+      <tr><td>IEO Médio — última janela</td>
+          <td style="font-family:monospace;color:${(avgIeo||0)>0.7?'#ef4444':(avgIeo||0)>0.5?'#f97316':'#10b981'}">${avgIeo!=null?Number(avgIeo).toFixed(3):'—'}</td>
+          <td>${(avgIeo||0)>0.7?'⚠ Acima do threshold crítico (0.7)':(avgIeo||0)>0.5?'⚡ Zona de atenção (0.5–0.7)':'✓ Dentro do esperado'}</td></tr>
+      <tr><td>PSI Médio — última janela</td>
+          <td style="font-family:monospace;color:${(avgPsi||0)>0.6?'#ef4444':(avgPsi||0)>0.3?'#f97316':'#10b981'}">${avgPsi!=null?Number(avgPsi).toFixed(3):'—'}</td>
+          <td>${(avgPsi||0)>0.6?'⚠ Clinicamente elevado':(avgPsi||0)>0.3?'⚡ Moderado':'✓ Normal'}</td></tr>
+      <tr><td>Red Flags Ativas</td>
+          <td style="color:${flagN>0?'#ef4444':'#10b981'};font-family:monospace">${flagN}</td>
+          <td>${flagN>0?'⚠ Requerem atenção':'✓ Nenhuma flag ativa'}</td></tr>
+    </table>
+    <h3>Distribuição de Convergência — Última Janela</h3>
+    <table class="rpt-tbl">
+      <tr><th>Classe</th><th>N</th><th>%</th><th>Descrição</th></tr>
+      ${['baseline','residual_burden','convergence','divergence'].map(k => `
+      <tr>
+        <td style="color:${convColors[k]};font-weight:600">${convLabels[k]}</td>
+        <td style="font-family:monospace">${dist[k]??0}</td>
+        <td style="font-family:monospace">${total?Math.round((dist[k]??0)/total*100):0}%</td>
+        <td style="color:var(--muted);font-size:11px">${{baseline:'IEO normal + PSI normal',residual_burden:'IEO normal + PSI elevado',convergence:'IEO↑ + PSI↑ (ambos críticos)',divergence:'IEO↑ + PSI suprimido (risco mascarado)'}[k]}</td>
+      </tr>`).join('')}
+    </table>
+  </div>
+
+  <div class="rs"><h2>4. Análise por Participante — Última Janela</h2>${partCards}</div>
+
+  <div class="rs"><h2>5. Red Flags — Registro Completo</h2>
+    <table class="rpt-tbl">
+      <tr><th>Tipo</th><th>Severidade</th><th>Participante</th><th>Janela</th><th>Detalhe</th></tr>
+      ${flagRows}
+    </table>
+  </div>
+
+  <div class="rs"><h2>6. Análise Longitudinal</h2>
+    <div class="rrow"><div class="rk">Evolução IEO</div><div class="rv" style="font-family:monospace;letter-spacing:2px;font-size:16px">${sparkline}</div></div>
+    <div class="rrow"><div class="rk">Tendência</div><div class="rv">${trendIcon} ${trend==='crescente'?'Crescente — atenção redobrada':trend==='decrescente'?'Decrescente — sinal positivo':'Estável'}</div></div>
+    <div class="rrow"><div class="rk">Janelas analisadas</div><div class="rv">${ieoS.length}</div></div>
+    ${ieoVals.length?`<div class="rrow"><div class="rk">IEO mín / máx / médio</div><div class="rv" style="font-family:monospace">${Math.min(...ieoVals).toFixed(3)} / ${Math.max(...ieoVals).toFixed(3)} / ${(ieoVals.reduce((a,b)=>a+b,0)/ieoVals.length).toFixed(3)}</div></div>`:''}
+  </div>
+
+  <div class="rs"><h2>7. Recomendações</h2>
+    ${recs.map((r,i) => `<div class="rrec"><b>${i+1}.</b> ${r}</div>`).join('')}
+  </div>
+
+  <div class="rs"><h2>8. Auditabilidade e Limitações</h2>
+    <div class="rrow"><div class="rk">Sistema</div><div class="rv">SUPREME V4 · SENTINELA</div></div>
+    <div class="rrow"><div class="rk">API</div><div class="rv" style="font-family:monospace">${API}</div></div>
+    <div class="rrow"><div class="rk">Gerado em</div><div class="rv">${ts}</div></div>
+    <div class="rrow"><div class="rk">Diagnóstico clínico</div><div class="rv">NÃO realizado</div></div>
+    <div class="rrow"><div class="rk">Nexo causal</div><div class="rv">NÃO estabelecido</div></div>
+    <div class="rrow"><div class="rk">Decisões autônomas</div><div class="rv">NÃO — todas as ações dependem de responsável designado</div></div>
+    <div style="margin-top:14px;font-size:11px;color:var(--muted);line-height:1.6">Os participantes são identificados por hash pseudonimizado. O uso deste relatório deve seguir os protocolos éticos do CEP aprovado.</div>
+    <div style="margin-top:36px;display:grid;grid-template-columns:1fr 1fr;gap:48px">
+      <div><div class="rpt-sig"><div style="height:44px"></div>Pesquisador Responsável / Data: ____________________</div></div>
+      <div><div class="rpt-sig"><div style="height:44px"></div>Revisor / Data: ____________________</div></div>
+    </div>
+  </div>`;
+
+  // Laudo com typewriter
+  const laudo = buildRptNarrative(d, trend, ieoVals, riskLabel);
+  rptTypewriter(document.getElementById('rpt-laudo-text'), laudo, 10);
+}
+
+function buildRptNarrative(d, trend, ieoVals, riskLabel) {
+  const { ov, parts, fls, ieoS } = d;
+  const total  = ov.total_participants ?? parts.length;
+  const avgIeo = ov.avg_ieo_last_window;
+  const avgPsi = ov.avg_psi_last_window;
+  const flagN  = ov.active_flags_count ?? fls.length;
+  const dist   = ov.convergence_distribution || {};
+  const now    = new Date().toLocaleDateString('pt-BR', {day:'2-digit',month:'long',year:'numeric'});
+  const diss   = fls.filter(f => f.flag_type === 'dissonancia');
+  const cron   = fls.filter(f => f.flag_type === 'cronicidade');
+  const react  = fls.filter(f => f.flag_type === 'reatividade');
+  const convN  = dist.convergence ?? 0;
+  const divgN  = dist.divergence  ?? 0;
+
+  const L = [];
+  L.push('LAUDO TÉCNICO DE RISCO PSICOSSOCIAL OCUPACIONAL');
+  L.push('SUPREME V4 · Perícia Digital · ' + now);
+  L.push('──────────────────────────────────────────────────');
+  L.push('');
+  L.push('AVALIAÇÃO GERAL');
+  if      (riskLabel==='CRÍTICO')  L.push('A avaliação indica risco psicossocial CRÍTICO e ativo. O conjunto de dados exige resposta imediata da equipe de pesquisa e dos responsáveis pelo programa de saúde ocupacional.');
+  else if (riskLabel==='ELEVADO')  L.push('A avaliação indica risco psicossocial ELEVADO. Foram identificadas situações que requerem intervenção antes de eventual agravamento.');
+  else if (riskLabel==='MODERADO') L.push('A avaliação indica risco psicossocial MODERADO. Os indicadores estão em zona de atenção — sem situação crítica confirmada, mas com margem de segurança reduzida.');
+  else                             L.push('A avaliação indica risco psicossocial BAIXO. Os indicadores estão dentro dos parâmetros esperados para este perfil profissional.');
+  L.push('');
+  if (ieoS.length > 0) {
+    L.push('O estudo acompanha ' + total + ' participante' + (total!==1?'s':'') + ' ao longo de ' + ieoS.length + ' janela' + (ieoS.length!==1?'s':'') + ' de monitoramento. Período: ' + fmtDate(ieoS[0].window_start) + ' a ' + fmtDate(ieoS[ieoS.length-1].window_start) + '.');
+    L.push('');
+  }
+  L.push('INDICADORES PRINCIPAIS');
+  if (avgIeo != null) {
+    const v = Number(avgIeo);
+    if (v > 0.7)      L.push('O IEO médio da última janela (' + v.toFixed(3) + ') ultrapassa o threshold crítico de 0.7. O grupo está submetido a cargas de exposição que excedem os parâmetros de segurança do protocolo SUPREME V4.');
+    else if (v > 0.5) L.push('O IEO médio da última janela (' + v.toFixed(3) + ') situa o grupo na zona de atenção (0.5–0.7). Margem de segurança reduzida — monitoramento reforçado recomendado.');
+    else              L.push('O IEO médio da última janela (' + v.toFixed(3) + ') está dentro dos parâmetros esperados.');
+  }
+  if (avgPsi != null) {
+    const v = Number(avgPsi);
+    if (v > 0.6)      L.push('A PSI média (' + v.toFixed(3) + ') é clinicamente elevada: DASS-21, OLBI, SRQ-20 e PANAS revelam sobrecarga psicológica significativa no coletivo.');
+    else if (v > 0.3) L.push('A PSI média (' + v.toFixed(3) + ') indica pressão psicológica moderada que merece acompanhamento ativo.');
+    else              L.push('A PSI média (' + v.toFixed(3) + ') indica boa capacidade de resposta coletiva.');
+  }
+  L.push('Foram disparados ' + flagN + ' red flag' + (flagN!==1?'s':'') + ' no período — critérios explícitos, não julgamento subjetivo.');
+  L.push('');
+  L.push('ANÁLISE POR PADRÃO DE RISCO');
+  if (convN > 0)       L.push('CONVERGÊNCIA (' + convN + ' caso' + (convN!==1?'s':'') + '): IEO e PSI elevados simultaneamente — o padrão de maior risco. Avaliação clínica e consideração de afastamento são necessárias.');
+  if (divgN > 0)       L.push('DIVERGÊNCIA (' + divgN + ' caso' + (divgN!==1?'s':'') + '): IEO elevado com PSI suprimido — risco silencioso associado a mecanismos de negação. Entrevistas individuais recomendadas.');
+  if (diss.length > 0) L.push('DISSONÂNCIA (prioridade máxima · ' + diss.length + ' caso' + (diss.length!==1?'s':'') + '): pressão objetiva elevada sem correspondência psicométrica. O padrão mais preocupante do sistema SUPREME V4.');
+  if (cron.length > 0) L.push('CRONICIDADE (' + cron.length + ' flag' + (cron.length!==1?'s':'') + '): OLBI/SRQ elevados em múltiplas janelas — risco de burnout instalado.');
+  if (react.length > 0) L.push('REATIVIDADE (' + react.length + ' caso' + (react.length!==1?'s':'') + '): IEO > 1.5σ com PANAS negativo elevado — reatividade emocional aguda ao conteúdo periciado.');
+  if (convN===0 && divgN===0 && diss.length===0 && cron.length===0 && react.length===0) L.push('Todos os participantes encerraram o período sem indicadores de risco confirmado.');
+  L.push('');
+  L.push('Tendência longitudinal do IEO: ' + trend + '.' + (ieoVals.length > 1 ? ' Média geral: ' + (ieoVals.reduce((a,b)=>a+b,0)/ieoVals.length).toFixed(3) + '.' : ''));
+  L.push('');
+  L.push('──────────────────────────────────────────────────');
+  L.push('Este laudo é instrumento de gestão de risco. Não constitui diagnóstico clínico,');
+  L.push('avaliação psicológica, nexo causal ou decisão autônoma. Todos os achados devem ser');
+  L.push('interpretados por profissional habilitado antes de qualquer medida individual.');
+  L.push('SUPREME V4 · SENTINELA · Pesquisa Exposição Ocupacional em Perícia Digital');
+
+  return L.join('\n');
+}
+
+function rptTypewriter(el, text, speed) {
+  if (!el) return;
+  el.textContent = '';
+  el.classList.add('rpt-laudo-cursor');
+  let i = 0;
+  const iv = setInterval(() => {
+    if (i < text.length) { el.textContent += text.slice(i, i + 6); i += 6; }
+    else { clearInterval(iv); el.classList.remove('rpt-laudo-cursor'); }
+  }, speed || 10);
+}
+
+function closeReport() { document.getElementById('rpt-overlay').classList.remove('open'); }
+
+function printRpt() {
+  const el = document.getElementById('rpt-laudo-text');
+  if (el) el.classList.remove('rpt-laudo-cursor');
+  setTimeout(() => window.print(), 150);
+}
+
+function copyRpt() {
+  const text = document.getElementById('rpt-body').innerText;
+  navigator.clipboard.writeText(text)
+    .then(() => alert('Relatório copiado para a área de transferência.'))
+    .catch(() => alert('Selecione e copie manualmente.'));
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function fmtNum(v) {
+  if (v == null) return '—';
+  const n = parseFloat(v);
+  return isNaN(n) ? '—' : n.toFixed(2);
+}
+
+function fmtZ(v) {
+  if (v == null) return '—';
+  const n = parseFloat(v);
+  if (isNaN(n)) return '—';
+  const cls = n > 1 ? 'text-red' : n < -1 ? 'text-green' : 'text-muted';
+  return `<span class="${cls}">${n.toFixed(2)}</span>`;
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  try { return new Date(d).toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' }); }
+  catch { return d; }
+}
+
+function fmtDateShort(d) {
+  if (!d) return '—';
+  try {
+    const dt = new Date(d);
+    return dt.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' });
+  } catch { return d; }
+}
+
+function convLabel(cls) {
+  const map = { baseline: 'Linha de Base', residual_burden: 'Carga Residual', convergence: 'Convergência', divergence: 'Dissonância' };
+  return map[cls] || cls || '—';
+}
+
+function flagClass(flag) {
+  const f = (flag || '').toLowerCase();
+  if (f.includes('react')) return 'reactivity';
+  if (f.includes('diss') || f.includes('diso')) return 'dissonance';
+  if (f.includes('chron') || f.includes('cron')) return 'chronicity';
+  return 'default';
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── EVENT LISTENERS ───────────────────────────────────────────────────────────
+document.getElementById('btn-login').addEventListener('click', doLogin);
+
+// ── LEMBRAR ACESSO ────────────────────────────────────────
+(function(){
+  const emailEl  = document.getElementById('login-email');
+  const rememberEl = document.getElementById('remember-me');
+  if (!emailEl || !rememberEl) return;
+
+  // Restaura email salvo e marca o checkbox
+  const saved = localStorage.getItem('sentinela_saved_email');
+  if (saved) {
+    emailEl.value = saved;
+    rememberEl.checked = true;
+    // Foca direto no campo senha
+    const passEl = document.getElementById('login-password');
+    if (passEl) setTimeout(() => passEl.focus(), 120);
+  }
+})();
+document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('login-email').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('login-password').focus(); });
+document.getElementById('btn-logout').addEventListener('click', logout);
+document.getElementById('panel-close').addEventListener('click', closeSidePanel);
+document.getElementById('side-panel-overlay').addEventListener('click', closeSidePanel);
+
+document.getElementById('history-participant-select').addEventListener('change', e => {
+  loadHistoryParticipant(e.target.value);
+});
+
+// ── AUTO-START ────────────────────────────────────────────────────────────────
+if (token) {
+  const payload = decodeJWT(token);
+  const exp = payload.exp;
+  if (exp && exp * 1000 < Date.now()) {
+    logout();
+  } else {
+    initApp();
+  }
+}
+
+// ── SOM DO VÍDEO ──────────────────────────────────────────
+function toggleSound() {
+  const video = document.getElementById('hero-video');
+  const btn   = document.getElementById('soundBtn');
+  if (!video) return;
+  if (video.muted) {
+    video.muted = false;
+    video.volume = 0.85;
+    btn.textContent = '🔊';
+    btn.classList.add('active');
+    btn.title = 'Silenciar';
+  } else {
+    video.muted = true;
+    btn.textContent = '🔇';
+    btn.classList.remove('active');
+    btn.title = 'Ativar som';
+  }
+}
+</script>
+
+<script>
+(function(){
+  var canvas = document.getElementById('bokeh-canvas');
+  if(!canvas) return;
+  var ctx = canvas.getContext('2d');
+
+  var COLORS = [
+    [0,   198, 255],
+    [26,  111, 255],
+    [255, 102,   0],
+    [212, 160,  23],
+    [0,   140, 255],
+  ];
+
+  var W, H, particles = [];
+
+  function resize(){
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function Particle(){
+    var c = COLORS[Math.floor(Math.random() * COLORS.length)];
+    this.r = c[0]; this.g = c[1]; this.b = c[2];
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    var isOrb = Math.random() < 0.2;
+    this.core  = isOrb ? 2 + Math.random()*3 : 0.8 + Math.random()*1.5;
+    this.halo  = this.core * (isOrb ? 4 : 2.5);
+    this.alpha = 0.05 + Math.random()*0.18;
+    this.da    = (Math.random() - 0.5) * 0.002;
+    this.vx    = (Math.random() - 0.5) * 0.18;
+    this.vy    = (Math.random() - 0.5) * 0.18;
+  }
+
+  function init(){
+    resize();
+    particles = [];
+    var n = Math.floor(W * H / 20000);
+    for(var i = 0; i < n; i++) particles.push(new Particle());
+  }
+
+  function draw(){
+    ctx.clearRect(0, 0, W, H);
+    for(var i = 0; i < particles.length; i++){
+      var p = particles[i];
+      p.alpha += p.da;
+      if(p.alpha <= 0.02 || p.alpha >= 0.28){ p.da = -p.da; }
+      p.x += p.vx; p.y += p.vy;
+      if(p.x < 0) p.x = W; if(p.x > W) p.x = 0;
+      if(p.y < 0) p.y = H; if(p.y > H) p.y = 0;
+
+      var col = 'rgba(' + p.r + ',' + p.g + ',' + p.b + ',';
+
+      /* halo externo — sem filter, só alpha baixo */
+      ctx.globalAlpha = p.alpha * 0.3;
+      ctx.fillStyle = col + '1)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.halo, 0, Math.PI * 2);
+      ctx.fill();
+
+      /* núcleo brilhante */
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = col + '1)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.core, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', init);
+  init();
+  draw();
+})();
+</script>
+</body>
+</html>

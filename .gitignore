@@ -1,0 +1,42 @@
+# Secrets
+.env
+*.env
+.env.*
+!.env.example
+!.env.production.example
+**/.env
+**/.env.production
+**/.env.local
+
+# TLS/private keys
+certs/*.pem
+certs/*.key
+certs/*.crt
+**/privkey.pem
+
+# Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+**/.pytest_cache/
+*.egg-info/
+
+# Node/build
+node_modules/
+dist/
+build/
+
+# Logs/data
+*.log
+logs/
+audit.ndjson
+supreme_audit.ndjson
+*.sqlite
+*.sqlite3
+*.db
+backups/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,11 @@
+services:
+  rq-dashboard:
+    image: eoranged/rq-dashboard:latest
+    restart: unless-stopped
+    profiles: ["observability"]
+    environment:
+      RQ_DASHBOARD_REDIS_URL: redis://redis:6379/0
+    ports:
+      - "127.0.0.1:9181:9181"
+    depends_on:
+      - redis

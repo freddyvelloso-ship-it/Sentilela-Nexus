@@ -1,0 +1,74 @@
+version: "3.9"
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       supreme
+      POSTGRES_USER:     supreme
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U supreme"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── API FastAPI ──────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: uvicorn src.app.main:app --host 0.0.0.0 --port 8000
+    env_file: .env
+    environment:
+      # Sobrescreve DATABASE_URL e REDIS_URL para usar nomes dos serviços Docker
+      DATABASE_URL: postgresql+asyncpg://supreme:${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}@db:5432/supreme
+      REDIS_URL:    redis://redis:6379/0
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── RQ Worker ────────────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: rq worker analytics --url redis://redis:6379/0
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://supreme:${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}@db:5432/supreme
+      REDIS_URL:    redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pgdata:

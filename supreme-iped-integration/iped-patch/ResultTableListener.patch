@@ -1,0 +1,74 @@
+--- a/iped-app/src/main/java/iped/app/ui/ResultTableListener.java
++++ b/iped-app/src/main/java/iped/app/ui/ResultTableListener.java
+@@ Description @@
+ Patch para ativar o SupremeAuditLogger no IPED.
+
+ Aplique com: git apply ResultTableListener.patch  (se o índice bater)
+ Ou manualmente conforme as instruções abaixo.
+
+ ─────────────────────────────────────────────────────────────────────
+ CONTEXTO: método processSelectedFile(boolean isMouseEvent)
+ (iped-app/src/main/java/iped/app/ui/ResultTableListener.java)
+
+ O bloco relevante no código real (busque por "lastTableDoc = docId"):
+
+     if (docId != lastAppDoc && (!isMouseEvent || docId == lastTableDoc)) {
+         lastTableDoc = docId;                          ← LINHA ALVO A
+         FileProcessor parsingTask = new FileProcessor(docId, true);
+         parsingTask.execute();
+     }
+
+ ─────────────────────────────────────────────────────────────────────
+ MODIFICAR para (inserir o bloco SUPREME antes de lastTableDoc = docId):
+
+     if (docId != lastAppDoc && (!isMouseEvent || docId == lastTableDoc)) {
+
++        // ── SUPREME AUDIT PATCH ──────────────────────────────────────
++        int _supremePrev = lastTableDoc;
++        try {
++            if (_supremePrev >= 0) {
++                org.apache.lucene.document.Document _prevDoc =
++                    App.get().appCase.getSearcher().doc(_supremePrev);
++                iped.app.ui.SupremeAuditLogger.onItemClose(_supremePrev, _prevDoc);
++            }
++            org.apache.lucene.document.Document _newDoc =
++                App.get().appCase.getSearcher().doc(docId);
++            iped.app.ui.SupremeAuditLogger.onItemOpen(docId, _newDoc);
++        } catch (Exception _supremeEx) {
++            // nunca deixar auditoria quebrar a UI principal
++        }
++        // ── FIM SUPREME AUDIT PATCH ───────────────────────────────────
+
+         lastTableDoc = docId;
+         FileProcessor parsingTask = new FileProcessor(docId, true);
+         parsingTask.execute();
+     }
+
+ ─────────────────────────────────────────────────────────────────────
+ NOTA SOBRE A API:
+   - CORRETO : App.get().appCase.getSearcher().doc(docId)
+   - ERRADO  : App.get().appCase.getReader().document(docId)   ← NÃO USE
+   getSearcher() retorna IndexSearcher (Lucene) com doc(int) nativo.
+   Já usado pelo próprio ResultTableListener.java linha 337 — API estável.
+
+ ─────────────────────────────────────────────────────────────────────
+ CLASSIFICATION_EVENT (bookmarks) — opcional mas recomendado
+ ─────────────────────────────────────────────────────────────────────
+ ATENÇÃO (IPED 4.4+): BookmarksController.java NÃO tem setChecked().
+ O ponto correto é ResultTableModel.java, método setValueAt().
+
+ LOCALIZAR em:
+   iped-app/src/main/java/iped/app/ui/ResultTableModel.java
+
+ BUSCAR o método:
+     public void setValueAt(Object value, int row, int col) {
+         app.appCase.getMultiBookmarks().setChecked((Boolean) value, App.get().ipedResult.getItem(row));
+
+ INSERIR ANTES de app.appCase.getMultiBookmarks().setChecked(...):
+
++        // ── SUPREME CLASSIFICATION PATCH ─────────────────────────────
++        if (col == 1 && Boolean.TRUE.equals(value)) {
++            try {
++                iped.data.IItemId _bkItem = App.get().ipedResult.getItem(row);
++                int _bkDocId = App.get().appCase.getLuceneId(_bkItem);
++                org.apache.lucene.document.

@@ -1,0 +1,12 @@
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+sqlalchemy[asyncio]==2.0.30
+asyncpg==0.29.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+pydantic==2.7.1
+pydantic-settings==2.2.1
+python-multipart==0.0.9
+aiofiles==23.2.1
+# Pin compatível com passlib 1.7.4; bcrypt 5 quebra hashing em runtime.
+bcrypt==4.0.1

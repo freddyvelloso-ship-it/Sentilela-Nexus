@@ -1,0 +1,80 @@
+services:
+  nginx:
+    networks:
+      - backend
+
+  supreme-redis:
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+  grafana:
+    environment:
+      GF_SERVER_ROOT_URL: https://localhost/grafana/
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+
+  prometheus:
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+
+  loki:
+    user: "0:0"
+
+  # Watcher: le supreme_audit.ndjson gerado pelo patch Java do IPED
+  # e envia eventos ao SUPREME com duration_seconds precisa.
+  supreme-iped-watcher:
+    build:
+      context: ./supreme-iped-integration
+      dockerfile: Dockerfile
+    command: python supreme-watcher/watcher.py
+    restart: unless-stopped
+    environment:
+      SUPREME_API_URL: http://supreme-api:8000
+      SUPREME_API_TOKEN: ${API_INGEST_TOKEN}
+      SUPREME_SALT: ${SUPREME_SALT}
+      SUPREME_AUDIT_LOG: /audit/supreme_audit.ndjson
+      WATCHER_POLL_SECS: "15"
+      SUPREME_USER_ID: perito_local
+    volumes:
+      - ${IPED_AUDIT_DIR:-C:/Users/${USERNAME:-nunas}}:/audit:ro
+    networks:
+      - backend
+    depends_on:
+      - supreme-api
+
+  # Proxy: intercepta chamadas do navegador ao IPED Web API (porta 1234)
+  # e gera eventos em tempo real. Configurar o navegador para usar porta 8081.
+  supreme-iped-proxy:
+    build:
+      context: ./supreme-iped-integration
+      dockerfile: Dockerfile
+    command: python supreme-proxy/proxy.py
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      IPED_API_URL: http://host.docker.internal:1234
+      PROXY_PORT: "8081"
+      SUPREME_API_URL: http://supreme-api:8000
+      SUPREME_API_TOKEN: ${API_INGEST_TOKEN}
+      SUPREME_SALT: ${SUPREME_SALT}
+      SUPREME_AUDIT_LOG: /audit/supreme_audit.ndjson
+      SUPREME_USER_ID: perito_local
+    volumes:
+      - ${IPED_AUDIT_DIR:-C:/Users/${USERNAME:-nunas}}:/audit:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - backend
+    depends_on:
+      - supreme-api
+
+  # Monta estáticos e código Python do Sentinela direto do host — sem rebuild ao editar
+  sentinela:
+    volumes:
+      - ./sentinela/static:/app/static:ro
+      - ./sentinela/src:/app/src:ro
+
+networks:
+  backend:
+    driver: bridge
