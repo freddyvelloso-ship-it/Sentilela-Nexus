@@ -127,10 +127,15 @@ services:
   prometheus:
     image: prom/prometheus:v2.55.1
     restart: unless-stopped
+    env_file:
+      - .env
     volumes:
       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
-    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=30d"]
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--config.expand-env"
+      - "--storage.tsdb.retention.time=30d"
     networks: [backend]
 
   grafana:
