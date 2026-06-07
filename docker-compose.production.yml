@@ -128,7 +128,7 @@ services:
     image: prom/prometheus:v2.55.1
     restart: unless-stopped
     env_file:
-      - .env
+      - ./supreme-backend/.env.production
     volumes:
       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
