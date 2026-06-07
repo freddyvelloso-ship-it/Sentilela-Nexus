@@ -1,29 +1,29 @@
 """
 engine.supreme.session
 ======================
-Session Builder — spec SUPREME V4 seção 14.
+Session Builder â€” spec SUPREME V4 seÃ§Ã£o 14.
 
 Algoritmo:
     Eventos ordenados por timestamp.
     delta = timestamp[i] - timestamp[i-1]
-    delta ≤ 300s  → mesma sessão
-    delta > 300s  → nova sessão
+    delta â‰¤ 300s  â†’ mesma sessÃ£o
+    delta > 300s  â†’ nova sessÃ£o
 
-Restrições:
+RestriÃ§Ãµes:
     min_session_duration = 5s   (filtra cliques acidentais)
-    max_session_duration = 12h  (filtra sessões esquecidas abertas)
+    max_session_duration = 12h  (filtra sessÃµes esquecidas abertas)
     gap_threshold        = 300s
 """
 
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from typing import Sequence
 
 from .models import EventRecord, SessionRecord
 
-# ── Parâmetros do algoritmo (spec seção 14) ───────────────────────────────
+# â”€â”€ ParÃ¢metros do algoritmo (spec seÃ§Ã£o 14) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 GAP_THRESHOLD_S      = 300       # segundos
 MIN_SESSION_DURATION = 5         # segundos
 MAX_SESSION_DURATION = 12 * 3600 # segundos (12 horas)
@@ -34,15 +34,15 @@ def build_sessions(
     id_hash: str,
 ) -> list[SessionRecord]:
     """
-    Agrupa eventos de um único id_hash em sessões comportamentais.
+    Agrupa eventos de um Ãºnico id_hash em sessÃµes comportamentais.
 
     Args:
-        events:  Sequência de EventRecord já filtrada para um único id_hash,
+        events:  SequÃªncia de EventRecord jÃ¡ filtrada para um Ãºnico id_hash,
                  ordenada por timestamp.
         id_hash: Identificador pseudonimizado do analista.
 
     Returns:
-        Lista de SessionRecord válidos (duração dentro dos limites).
+        Lista de SessionRecord vÃ¡lidos (duraÃ§Ã£o dentro dos limites).
     """
     if not events:
         return []
@@ -50,7 +50,7 @@ def build_sessions(
     sorted_events = sorted(events, key=lambda e: e.timestamp)
     sessions: list[SessionRecord] = []
 
-    # Inicializa primeira sessão
+    # Inicializa primeira sessÃ£o
     session_start  = sorted_events[0].timestamp
     session_events = [sorted_events[0]]
     prev_ts        = sorted_events[0].timestamp
@@ -78,7 +78,7 @@ def build_sessions(
         delta_s = (event.timestamp - prev_ts).total_seconds()
 
         if delta_s > GAP_THRESHOLD_S:
-            # Fecha sessão atual
+            # Fecha sessÃ£o atual
             sess = _finalize_session(
                 start=session_start,
                 end=prev_ts,
@@ -86,7 +86,7 @@ def build_sessions(
             )
             if sess:
                 sessions.append(sess)
-            # Abre nova sessão
+            # Abre nova sessÃ£o
             session_start  = event.timestamp
             session_events = [event]
         else:
@@ -94,7 +94,7 @@ def build_sessions(
 
         prev_ts = event.timestamp
 
-    # Fecha última sessão
+    # Fecha Ãºltima sessÃ£o
     if session_events:
         sess = _finalize_session(
             start=session_start,

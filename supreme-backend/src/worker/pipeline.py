@@ -1,18 +1,18 @@
 """
 worker.pipeline
 ===============
-RQ worker — pipeline analítico assíncrono SUPREME V4.
+RQ worker â€” pipeline analÃ­tico assÃ­ncrono SUPREME V4.
 
 Fluxo por id_hash:
-    1. Identificar janelas pendentes (sem métricas calculadas)
+    1. Identificar janelas pendentes (sem mÃ©tricas calculadas)
     2. Buscar eventos da janela no banco
-    3. Construir sessões (session.py)
-    4. Calcular métricas da janela (metrics.py)
-    5. Atualizar baseline se elegível (ieo.py)
+    3. Construir sessÃµes (session.py)
+    4. Calcular mÃ©tricas da janela (metrics.py)
+    5. Atualizar baseline se elegÃ­vel (ieo.py)
     6. Calcular IEO (ieo.py)
-    7. Detectar flags de risco crítico (risk.py)
+    7. Detectar flags de risco crÃ­tico (risk.py)
     8. Persistir tudo no banco
-    9. Em falha: logar → retry 3x → Dead Letter Queue (C6)
+    9. Em falha: logar â†’ retry 3x â†’ Dead Letter Queue (C6)
 
 Chamado por: src.app.queue.enqueue_pipeline
 """
@@ -20,17 +20,15 @@ Chamado por: src.app.queue.enqueue_pipeline
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 from ..app.config import get_settings
 from ..app.db import (
     AsyncSessionLocal,
-    count_dlq,
     fetch_baseline,
     fetch_events_in_window,
     has_active_consent,
-    fetch_sessions_in_window,
     fetch_window_metrics,
     insert_dlq,
     insert_flag,
@@ -73,8 +71,8 @@ settings = get_settings()
 
 def run_pipeline_for_user(id_hash: str) -> dict:
     """
-    Entry point síncrono exigido pelo RQ.
-    asyncio.run() cria sempre um loop novo — seguro no contexto do worker.
+    Entry point sÃ­ncrono exigido pelo RQ.
+    asyncio.run() cria sempre um loop novo â€” seguro no contexto do worker.
     """
     import asyncio
 
@@ -102,25 +100,25 @@ async def _run_pipeline_async(id_hash: str) -> dict:
                 stats["errors"].append("consent_revoked_or_missing")
                 return stats
 
-            # ── 1. Determinar janelas a processar ─────────────────────────
+            # â”€â”€ 1. Determinar janelas a processar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             study_start = date.fromisoformat(settings.study_start_date)
             today       = date.today()
             windows     = generate_windows(study_start, today, step_days=settings.window_days)
 
-            # Carregar métricas já calculadas para evitar reprocessamento
+            # Carregar mÃ©tricas jÃ¡ calculadas para evitar reprocessamento
             existing_metrics = await fetch_window_metrics(db, id_hash, limit=500)
             calculated_starts = {r["window_start"] for r in existing_metrics}
 
-            # ── 2. Processar cada janela pendente ─────────────────────────
+            # â”€â”€ 2. Processar cada janela pendente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             # all_valid_metrics: janelas com DQ >= 0.5 AND t_minutes > 0
-            #   → usadas para computar baseline (critério estrito)
+            #   â†’ usadas para computar baseline (critÃ©rio estrito)
             # all_data_metrics: janelas com e_events > 0
-            #   → usadas para computar IEO (critério relaxado; inclui janelas
-            #     com t_minutes=0 de dados de teste ou eventos sem duração)
+            #   â†’ usadas para computar IEO (critÃ©rio relaxado; inclui janelas
+            #     com t_minutes=0 de dados de teste ou eventos sem duraÃ§Ã£o)
             all_valid_metrics: list[WindowMetrics] = []
             all_data_metrics:  list[WindowMetrics] = []
 
-            # Reconstruir métricas existentes
+            # Reconstruir mÃ©tricas existentes
             for r in existing_metrics:
                 wm = WindowMetrics(
                     id_hash=r["id_hash"],
@@ -161,15 +159,15 @@ async def _run_pipeline_async(id_hash: str) -> dict:
                     stats["errors"].append(err_msg)
                     await _log(db, "metrics", "error", err_msg, id_hash, window_start)
 
-            # ── 3. Atualizar baseline ─────────────────────────────────────
+            # â”€â”€ 3. Atualizar baseline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             baseline = await fetch_baseline(db, id_hash)
             baseline_obj: Optional[BaselineParameters] = (
                 BaselineParameters(**baseline) if baseline else None
             )
 
-            # Prefere janelas DQ-válidas para baseline; se não houver,
+            # Prefere janelas DQ-vÃ¡lidas para baseline; se nÃ£o houver,
             # usa qualquer janela com dados (e_events > 0) como fallback.
-            # Isso garante que dados de teste e janelas sem sessões ainda
+            # Isso garante que dados de teste e janelas sem sessÃµes ainda
             # gerem um baseline funcional.
             metrics_for_baseline = all_valid_metrics if all_valid_metrics else all_data_metrics
 
@@ -184,9 +182,9 @@ async def _run_pipeline_async(id_hash: str) -> dict:
                     stats["errors"].append(err_msg)
                     await _log(db, "baseline", "error", err_msg, id_hash, None)
 
-            # ── 4. Calcular IEO para janelas sem IEO ─────────────────────
-            # Itera all_data_metrics (e_events > 0), não all_valid_metrics,
-            # para que janelas com t_minutes=0 também recebam IEO calculado.
+            # â”€â”€ 4. Calcular IEO para janelas sem IEO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            # Itera all_data_metrics (e_events > 0), nÃ£o all_valid_metrics,
+            # para que janelas com t_minutes=0 tambÃ©m recebam IEO calculado.
             if baseline_obj and baseline_obj.baseline_status == "active":
                 existing_ieo_rows = await _fetch_ieo_starts(db, id_hash)
 
@@ -202,12 +200,12 @@ async def _run_pipeline_async(id_hash: str) -> dict:
                         await upsert_ieo(db, ieo_payload)
                         stats["ieo_computed"] += 1
 
-                        # ── 5. Verificar risco crítico ────────────────────
+                        # â”€â”€ 5. Verificar risco crÃ­tico â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                         flag = check_critical_load(ieo, baseline_obj, None, None)
                         if flag:
                             await insert_flag(db, flag.model_dump())
                             stats["flags_raised"] += 1
-                            log.warning(f"Flag crítica para {id_hash} janela {wm.window_start}")
+                            log.warning(f"Flag crÃ­tica para {id_hash} janela {wm.window_start}")
                             await _log(db, "risk", "warning",
                                        f"IEO={ieo.ieo_score:.3f} flag_confirmed={flag.flag_confirmed}",
                                        id_hash, wm.window_start)
@@ -219,10 +217,10 @@ async def _run_pipeline_async(id_hash: str) -> dict:
                         await _log(db, "ieo", "error", err_msg, id_hash, wm.window_start)
                         continue
 
-                    # ── Fix B11: push IEO ao SENTINELA (fora do try/except do IEO) ──
-                    # Separado para que erros de push não sejam confundidos com
-                    # erros de cálculo e para garantir que o push sempre ocorra
-                    # após persistência bem-sucedida no banco SUPREME.
+                    # â”€â”€ Fix B11: push IEO ao SENTINELA (fora do try/except do IEO) â”€â”€
+                    # Separado para que erros de push nÃ£o sejam confundidos com
+                    # erros de cÃ¡lculo e para garantir que o push sempre ocorra
+                    # apÃ³s persistÃªncia bem-sucedida no banco SUPREME.
                     try:
                         await _sentinela_push_ieo(
                             id_hash=ieo.id_hash,
@@ -244,7 +242,7 @@ async def _run_pipeline_async(id_hash: str) -> dict:
                         log.warning("SENTINELA IEO push falhou para %s janela %s: %s",
                                     id_hash, wm.window_start, push_exc)
 
-            # ── 6. Log de saúde ───────────────────────────────────────────
+            # â”€â”€ 6. Log de saÃºde â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             await _log(db, "pipeline", "ok",
                        f"windows={stats['windows_processed']} ieo={stats['ieo_computed']} flags={stats['flags_raised']}",
                        id_hash, None)
@@ -252,13 +250,13 @@ async def _run_pipeline_async(id_hash: str) -> dict:
             return stats
 
         except Exception as exc:
-            log.error(f"Pipeline crítico para {id_hash}: {exc}", exc_info=True)
+            log.error(f"Pipeline crÃ­tico para {id_hash}: {exc}", exc_info=True)
             await _log(db, "pipeline", "error", str(exc), id_hash, None)
             raise
 
 
 # =============================================================================
-# Processar uma única janela quinzenal
+# Processar uma Ãºnica janela quinzenal
 # =============================================================================
 
 async def _process_window(
@@ -267,7 +265,7 @@ async def _process_window(
     window_start: date,
     window_end:   date,
 ) -> Optional[WindowMetrics]:
-    """Busca eventos, constrói sessões e calcula métricas da janela."""
+    """Busca eventos, constrÃ³i sessÃµes e calcula mÃ©tricas da janela."""
     raw_events = await fetch_events_in_window(db, id_hash, window_start, window_end)
     if not raw_events:
         return None
@@ -275,7 +273,7 @@ async def _process_window(
     # Converter dicts para EventRecord
     events = [_dict_to_event(r) for r in raw_events]
 
-    # Construir sessões
+    # Construir sessÃµes
     sessions = build_sessions(events, id_hash)
     if sessions:
         session_dicts = [
@@ -291,7 +289,7 @@ async def _process_window(
         ]
         await upsert_sessions(db, session_dicts)
 
-    # Calcular métricas da janela
+    # Calcular mÃ©tricas da janela
     wm = compute_window_metrics(id_hash, window_start, events, sessions)
     await upsert_window_metrics(db, {
         "id_hash":      wm.id_hash,
@@ -307,13 +305,13 @@ async def _process_window(
 
 
 # =============================================================================
-# Dead Letter Queue handler — chamado pelo RQ após max_retries
+# Dead Letter Queue handler â€” chamado pelo RQ apÃ³s max_retries
 # =============================================================================
 
 def handle_dead_letter(entry: dict) -> None:
     """
     Persiste entrada na DLQ do banco quando o RQ esgota os retries.
-    Chamado pela _q_dead_letter após enqueue_dead_letter().
+    Chamado pela _q_dead_letter apÃ³s enqueue_dead_letter().
     """
     import asyncio
 
@@ -343,8 +341,8 @@ def _should_compute_baseline(
         return False
     if existing is None:
         return True
-    # Baseline já existe e está ativo — só atualiza se ainda não foi frozen
-    # e ainda não atingiu max janelas
+    # Baseline jÃ¡ existe e estÃ¡ ativo â€” sÃ³ atualiza se ainda nÃ£o foi frozen
+    # e ainda nÃ£o atingiu max janelas
     if existing.baseline_status == "active" and existing.baseline_frozen_at is None:
         if existing.baseline_window_count < MAX_BASELINE_WINDOWS:
             return True
@@ -352,7 +350,7 @@ def _should_compute_baseline(
 
 
 def _dict_to_event(r: dict) -> EventRecord:
-    """Converte linha do banco para EventRecord (reconstrói event_hash)."""
+    """Converte linha do banco para EventRecord (reconstrÃ³i event_hash)."""
     return EventRecord(
         user_identifier=r["id_hash"],
         timestamp=r["timestamp"] if isinstance(r["timestamp"], datetime)
@@ -366,7 +364,7 @@ def _dict_to_event(r: dict) -> EventRecord:
 
 
 async def _fetch_ieo_starts(db, id_hash: str) -> set:
-    """Retorna conjunto de window_start que já têm IEO calculado."""
+    """Retorna conjunto de window_start que jÃ¡ tÃªm IEO calculado."""
     from ..app.db import fetch_ieo
     rows = await fetch_ieo(db, id_hash, limit=500)
     return {r["window_start"] for r in rows}
