@@ -6,17 +6,22 @@ $ErrorActionPreference = "Stop"
 
 function Write-Utf8NoBom {
     param(
+        [Parameter(Mandatory = $true)]
         [string]$Path,
+
+        [Parameter(Mandatory = $true)]
         [string]$Content
     )
 
-    $directory = Split-Path $Path -Parent
-    if ($directory -and !(Test-Path $directory)) {
+    $fullPath = Join-Path (Get-Location) $Path
+    $directory = Split-Path $fullPath -Parent
+
+    if (!(Test-Path $directory)) {
         New-Item -ItemType Directory -Force $directory | Out-Null
     }
 
     $utf8NoBom = New-Object System.Text.UTF8Encoding $false
-    [System.IO.File]::WriteAllText((Resolve-Path -LiteralPath (Split-Path $Path -Parent)).Path + "\" + (Split-Path $Path -Leaf), $Content, $utf8NoBom)
+    [System.IO.File]::WriteAllText($fullPath, $Content, $utf8NoBom)
 }
 
 $PostgresPassword = "sentinela_local_postgres_1234567890"
