@@ -40,3 +40,6 @@ backups/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local Prometheus bearer token
+infra/prometheus/supreme-api-token.local

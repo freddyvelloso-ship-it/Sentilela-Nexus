@@ -127,14 +127,12 @@ services:
   prometheus:
     image: prom/prometheus:v2.55.1
     restart: unless-stopped
-    env_file:
-      - ./supreme-backend/.env.production
     volumes:
       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/prometheus/supreme-api-token.local:/etc/prometheus/supreme-api-token:ro
       - prometheus_data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--config.expand-env"
       - "--storage.tsdb.retention.time=30d"
     networks: [backend]
 
