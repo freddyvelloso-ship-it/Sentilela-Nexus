@@ -20,10 +20,14 @@ Pipeline de 5 etapas sequenciais:
         D = E / T
 
     Etapa 4 — Padronização por baseline individual
-        z_T = (T - mean_T) / sd_T
-        z_E = (E - mean_E) / sd_E
-        z_V = (V - mean_V) / sd_V
-        z_D = (D - mean_D) / sd_D
+     mean_t = _mean(ts)
+sd_t = _std(ts, mean_t)
+mean_e = _mean(es)
+sd_e = _std(es, mean_e)
+mean_v = _mean(vs)
+sd_v = _std(vs, mean_v)
+mean_d = _mean(ds)
+sd_d = _std(ds, mean_d)
 
     Etapa 5 — Combinação linear, saturação e ajuste de densidade
         IEO_linear = 0.5·z_T + 0.3·z_E + 0.2·z_V   [α+β+γ = 1]
