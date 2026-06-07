@@ -1,11 +1,11 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "supreme-backend"
 version = "4.0.0"
-description = "SUPREME V4 — Backend analítico de exposição ocupacional (IEO)"
+description = "SUPREME V4 â€” Backend analÃ­tico de exposiÃ§Ã£o ocupacional (IEO)"
 requires-python = ">=3.11"
 
 dependencies = [
