@@ -2,22 +2,36 @@
 .env
 *.env
 .env.*
+.envrc
 !.env.example
 !.env.production.example
 **/.env
 **/.env.production
 **/.env.local
+**/.env.*.local
+**/secrets/
+**/secrets.*
+**/*secret*.local
+**/*token*.local
 
 # TLS/private keys
-certs/*.pem
-certs/*.key
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
 certs/*.crt
 **/privkey.pem
+!certs/README.md
 
 # Python
 __pycache__/
 **/__pycache__/
 *.py[cod]
+.venv/
+.venv*/
+**/.venv/
 .pytest_cache/
 **/.pytest_cache/
 *.egg-info/

@@ -62,6 +62,7 @@ Esta versão adiciona a camada operacional necessária para sair de piloto contr
 ## Comandos
 
 ```bash
+cp .env.production.example .env
 cp supreme-backend/.env.production.example supreme-backend/.env.production
 cp sentinela/.env.production.example sentinela/.env.production
 # editar segredos
@@ -70,6 +71,14 @@ docker compose -f docker-compose.production.yml up -d --build
 API_SECRET_KEY=<token> BASE_URL=http://localhost scripts/smoke_test.sh
 scripts/backup_postgres.sh
 ```
+
+## Arquivos de ambiente e secrets
+
+- `.env.production.example` contem apenas variaveis de orquestracao do Docker Compose.
+- `supreme-backend/.env.production.example` contem variaveis da API SUPREME e do worker.
+- `sentinela/.env.production.example` contem variaveis da aplicacao SENTINELA.
+- `infra/prometheus/supreme-api-token.local` deve conter o mesmo valor de `API_SECRET_KEY` e permanece ignorado pelo git.
+- Arquivos `.env`, `.env.production`, chaves privadas, certificados e tokens locais nao devem ser versionados.
 
 ## Limitações remanescentes
 
