@@ -180,3 +180,29 @@ O sistema só deve ser considerado pronto para produção após:
 
 \- documentação de deploy atualizada
 
+\- `scripts/production_readiness_check.ps1` passando sem falhas no servidor alvo
+
+
+
+\## Gate automatizado adicionado
+
+
+
+Foi adicionado um gate operacional em `scripts/production_readiness_check.ps1` para validar, antes do go-live, a presenca e consistencia de:
+
+
+
+\- arquivos reais de ambiente fora do Git
+
+\- secrets fortes sem placeholders
+
+\- certificados TLS reais fora do Git
+
+\- token local do Prometheus alinhado a `API_SECRET_KEY`
+
+\- chave compartilhada SUPREME/SENTINELA
+
+\- `BOOTSTRAP_TOKEN` removido apos bootstrap
+
+\- ausencia de arquivos sensiveis versionados
+
