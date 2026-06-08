@@ -9,6 +9,7 @@ if (-not (Test-Path $envFile)) {
 }
 
 $API_INGEST_TOKEN = (Get-Content $envFile | Where-Object { $_ -match "^API_INGEST_TOKEN=" }) -replace "^API_INGEST_TOKEN=", ""
+$API_SECRET_KEY   = (Get-Content $envFile | Where-Object { $_ -match "^API_SECRET_KEY=" })   -replace "^API_SECRET_KEY=", ""
 $SUPREME_SALT     = (Get-Content $envFile | Where-Object { $_ -match "^SUPREME_SALT=" })     -replace "^SUPREME_SALT=", ""
 
 if (-not $API_INGEST_TOKEN -or -not $SUPREME_SALT) {
@@ -60,45 +61,46 @@ Write-Host "Arquivo de auditoria gerado: $auditPath" -ForegroundColor Green
 Write-Host "Eventos escritos: $($events.Count)" -ForegroundColor Green
 Write-Host ""
 
-# Enviar eventos diretamente ao SUPREME via /v1/events/ingest
-Write-Host "Enviando eventos ao SUPREME..." -ForegroundColor Yellow
+# Registrar consent do participante simulado
+Write-Host "Registrando consent..." -ForegroundColor Yellow
+$consentBody = '{"status":"granted"}'
+$consentBody | Set-Content -Encoding UTF8 _consent.json
+$cResp = curl.exe -sk -X POST "https://localhost/v1/governance/consent/$idHash" `
+    -H "Content-Type: application/json" `
+    -H "Authorization: Bearer $API_SECRET_KEY" `
+    --data-binary "@_consent.json" 2>&1
+Remove-Item _consent.json -ErrorAction SilentlyContinue
+if ($cResp -match "granted") {
+    Write-Host "  Consent OK" -ForegroundColor Green
+} else {
+    Write-Host "  Consent resp: $cResp" -ForegroundColor Yellow
+}
 Write-Host ""
 
-$timestamp = [DateTimeOffset]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+# Enviar eventos diretamente ao SUPREME via /v1/events/ingest
+# Envia 5 janelas passadas completas (study_start=2026-01-01, window=14d)
+# para garantir baseline (>= 4 janelas) e IEO calculado.
+Write-Host "Enviando eventos ao SUPREME (5 janelas historicas)..." -ForegroundColor Yellow
+Write-Host ""
 
-$supremeEvents = @(
-    @{ id_hash=$idHash; timestamp=$timestamp;                  event_type="image_view";          artifact_id="item_1001"; severity=1; duration_seconds=12;  source="iped_sim" }
-    @{ id_hash=$idHash; timestamp=$timestamp;                  event_type="video_play";           artifact_id="item_1002"; severity=3; duration_seconds=72;  source="iped_sim" }
-    @{ id_hash=$idHash; timestamp=$timestamp;                  event_type="image_view";          artifact_id="item_1003"; severity=5; duration_seconds=40;  source="iped_sim" }
-    @{ id_hash=$idHash; timestamp=$timestamp;                  event_type="file_open";           artifact_id="item_1004"; severity=1; duration_seconds=13;  source="iped_sim" }
-    @{ id_hash=$idHash; timestamp=$timestamp;                  event_type="classification_event"; artifact_id="item_1005"; severity=4; duration_seconds=5;   source="iped_sim" }
+# Timestamps no meio de cada janela fechada:
+# W1: 2026-01-01->15  W2: 2026-01-15->29  W3: 2026-01-29->02-12
+# W4: 2026-02-12->26  W5: 2026-02-26->03-12
+# Timestamps com segundos aleatórios para evitar colisão de event_hash em reexecuções
+$rnd = Get-Random -Minimum 10 -Maximum 59
+$windowTimestamps = @(
+    "2026-01-08T10:00:${rnd}Z"
+    "2026-01-22T10:00:${rnd}Z"
+    "2026-02-05T10:00:${rnd}Z"
+    "2026-02-19T10:00:${rnd}Z"
+    "2026-03-05T10:00:${rnd}Z"
 )
 
-$payload = @{ events = $supremeEvents } | ConvertTo-Json -Depth 5
-$payload | Set-Content -Encoding UTF8 _sim_payload.json
-
-$resp = curl.exe -sk -X POST https://localhost/v1/events/ingest `
-    -H "Content-Type: application/json" `
-    -H "Authorization: Bearer $API_INGEST_TOKEN" `
-    --data-binary "@_sim_payload.json" 2>&1
-Remove-Item _sim_payload.json -ErrorAction SilentlyContinue
-
-if ($resp -match "events_stored") {
-    Write-Host "Ingestao OK: $resp" -ForegroundColor Green
-} else {
-    Write-Host "Resposta: $resp" -ForegroundColor Yellow
-}
-
-Write-Host ""
-
-# Verificar no banco
-Write-Host "Verificando no banco..." -ForegroundColor Yellow
-$sql = "SELECT id_hash, event_type, severity, duration_seconds, source FROM events_raw ORDER BY timestamp DESC LIMIT 10;"
-docker exec supreme_final-supreme-db-1 psql -U supreme -d supreme -c $sql 2>&1
-
-Write-Host ""
-Write-Host "Pipeline testado. Verifique o dashboard em: https://localhost/sentinela/" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "O watcher Docker le $auditPath a cada 15s." -ForegroundColor DarkGray
-Write-Host "Para ver o watcher processando: docker logs -f supreme_final-supreme-iped-watcher-1" -ForegroundColor DarkGray
-Write-Host ""
+$totalStored = 0
+foreach ($ts in $windowTimestamps) {
+    $windowEvents = @(
+        @{ user_identifier=$idHash; timestamp=$ts; event_type="image_view";           media_type="image";   severity=2; duration_seconds=20;  source_tool="iped" }
+        @{ user_identifier=$idHash; timestamp=$ts; event_type="video_play";           media_type="video";   severity=3; duration_seconds=90;  source_tool="iped" }
+        @{ user_identifier=$idHash; timestamp=$ts; event_type="image_view";           media_type="image";   severity=4; duration_seconds=35;  source_tool="iped" }
+        @{ user_identifier=$idHash; timestamp=$ts; event_type="file_open";            media_type="preview"; severity=1; duration_seconds=10;  source_tool="iped" }
+        @{ user_identifier=$idHash; timestamp=$ts; event_type="cla
