@@ -1,4 +1,4 @@
-# Secrets
+# ── Secrets and environment files ─────────────────────────────────────────────
 .env
 *.env
 .env.*
@@ -14,7 +14,7 @@
 **/*secret*.local
 **/*token*.local
 
-# TLS/private keys
+# ── TLS / private keys ────────────────────────────────────────────────────────
 *.pem
 *.key
 *.p12
@@ -25,7 +25,23 @@ certs/*.crt
 **/privkey.pem
 !certs/README.md
 
-# Python
+# ── Prometheus bearer token file (create manually, never commit) ──────────────
+infra/prometheus/supreme-api-token.local
+
+# ── Archives (may contain secrets or sensitive build output) ──────────────────
+# Note: SUPREME_FINAL_LIMPO_PARA_CODEX_DEV.zip is tracked for historical
+# reference but contains only .env.example files — no real secrets.
+# Future archives must not be committed.
+*.zip
+*.tar.gz
+*.tar.bz2
+
+# ── Build artifacts ───────────────────────────────────────────────────────────
+# _patch_build/ contains pre-compiled IPED patch binaries tracked intentionally.
+# Add _patch_build/ below to stop tracking future builds.
+*.class
+
+# ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
 **/__pycache__/
 *.py[cod]
@@ -36,12 +52,12 @@ __pycache__/
 **/.pytest_cache/
 *.egg-info/
 
-# Node/build
+# ── Node / frontend build ─────────────────────────────────────────────────────
 node_modules/
 dist/
 build/
 
-# Logs/data
+# ── Logs and audit data ───────────────────────────────────────────────────────
 *.log
 logs/
 audit.ndjson
@@ -51,9 +67,6 @@ supreme_audit.ndjson
 *.db
 backups/
 
-# OS
+# ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
-
-# Local Prometheus bearer token
-infra/prometheus/supreme-api-token.local
