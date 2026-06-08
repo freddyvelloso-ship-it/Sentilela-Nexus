@@ -86,3 +86,27 @@ scripts/backup_postgres.sh
 - MFA ainda deve ser integrado ao provedor institucional de identidade.
 - Promtail/agent de logs pode ser adicionado conforme o runtime real.
 - Teste de carga deve ser executado com volumetria real do piloto.
+
+## Gate final de producao
+
+Antes do go-live, execute no servidor alvo:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\production_readiness_check.ps1
+```
+
+Durante revisao de PR, valide apenas os templates versionados:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\production_readiness_check.ps1 -TemplateMode -SkipDockerCompose
+```
+
+O gate final falha se:
+
+- `.env`, `supreme-backend/.env.production`, `sentinela/.env.production`, certificados TLS reais ou token local do Prometheus estiverem ausentes.
+- Algum secret continuar como placeholder ou com tamanho inseguro.
+- `ALLOWED_ORIGINS`, `SENTINELA_URL` ou `GRAFANA_ROOT_URL` apontarem para valor local ou de exemplo.
+- A chave compartilhada `SENTINELA_API_KEY`/`SUPREME_API_KEY` estiver divergente.
+- `infra/prometheus/supreme-api-token.local` nao bater com `API_SECRET_KEY`.
+- `BOOTSTRAP_TOKEN` continuar definido depois do bootstrap inicial.
+- Arquivos sensiveis aparecerem versionados no Git.
