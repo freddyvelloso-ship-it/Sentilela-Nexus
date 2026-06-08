@@ -1343,6 +1343,7 @@ tr.participant-inactive td.action-cell { opacity: 1; }
       ⚡ Gerar Relatório Completo
     </button>
     <p style="color:var(--muted);font-size:12px;margin-top:16px;">Carrega todos os endpoints e monta o relatório automaticamente</p>
+    <div id="report-guard-msg" style="display:none;margin-top:20px;padding:16px 20px;border-radius:10px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.4);color:#f97316;font-size:13px;text-align:left;line-height:1.6;"></div>
   </div>
 </div>
 
@@ -2154,6 +2155,25 @@ function renderLongitudinalCharts() {
 // REPORT
 // ══════════════════════════════════════════════════════════
 async function generateReport() {
+  const guardMsg = document.getElementById('report-guard-msg');
+  guardMsg.style.display = 'none';
+
+  const totalParticipants = cachedOverview?.total_participants ?? 0;
+  const windowCount = cachedIeoSeries?.length ?? 0;
+  const MIN_PARTICIPANTS = 1;
+  const MIN_WINDOWS = 2;
+
+  if (totalParticipants < MIN_PARTICIPANTS) {
+    guardMsg.innerHTML = '⚠ <strong>Relatório indisponível.</strong> Nenhum participante com dados registrados ainda. O relatório só pode ser gerado após pelo menos 1 participante ter completado uma janela de monitoramento.';
+    guardMsg.style.display = 'block';
+    return;
+  }
+  if (windowCount < MIN_WINDOWS) {
+    guardMsg.innerHTML = `⚠ <strong>Baseline insuficiente.</strong> O estudo possui apenas ${windowCount} janela(s) de dados. São necessárias no mínimo ${MIN_WINDOWS} janelas para congelar a baseline e gerar o laudo com comparação longitudinal válida.`;
+    guardMsg.style.display = 'block';
+    return;
+  }
+
   document.getElementById('reportModal').classList.add('open');
   document.getElementById('reportContent').innerHTML = `
     <div style="text-align:center;padding:40px;color:var(--muted);">
