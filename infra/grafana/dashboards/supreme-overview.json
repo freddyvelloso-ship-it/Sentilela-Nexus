@@ -1,1 +1,303 @@
-{"title":"SUPREME Overview","schemaVersion":39,"version":1,"panels":[{"type":"stat","title":"HTTP Requests","targets":[{"expr":"sum(rate(supreme_http_requests_total[5m]))"}],"gridPos":{"x":0,"y":0,"w":8,"h":4}},{"type":"stat","title":"Ingest Stored/min","targets":[{"expr":"sum(rate(supreme_ingest_events_total{result=\"stored\"}[5m]))*60"}],"gridPos":{"x":8,"y":0,"w":8,"h":4}},{"type":"timeseries","title":"Latency p95","targets":[{"expr":"histogram_quantile(0.95, sum(rate(supreme_http_request_duration_seconds_bucket[5m])) by (le))"}],"gridPos":{"x":0,"y":4,"w":16,"h":8}}]}
+{
+  "title": "SUPREME V5 — Overview",
+  "uid": "supreme-overview",
+  "schemaVersion": 39,
+  "version": 2,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "tags": ["supreme", "production"],
+  "panels": [
+
+    // ── ROW 1: Status geral ───────────────────────────────────────────────
+
+    {
+      "type": "stat",
+      "id": 1,
+      "title": "API Status",
+      "description": "1 = online, 0 = fora do ar",
+      "targets": [{ "expr": "up{job=\"supreme-api\"}", "legendFormat": "API" }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{ "type": "value", "options": { "0": { "text": "OFFLINE", "color": "red" }, "1": { "text": "ONLINE", "color": "green" } } }],
+          "thresholds": { "steps": [{ "color": "red", "value": 0 }, { "color": "green", "value": 1 }] },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "gridPos": { "x": 0, "y": 0, "w": 3, "h": 4 }
+    },
+
+    {
+      "type": "stat",
+      "id": 2,
+      "title": "PostgreSQL Status",
+      "targets": [{ "expr": "up{job=\"postgres-exporter\"}", "legendFormat": "DB" }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{ "type": "value", "options": { "0": { "text": "OFFLINE", "color": "red" }, "1": { "text": "ONLINE", "color": "green" } } }],
+          "thresholds": { "steps": [{ "color": "red", "value": 0 }, { "color": "green", "value": 1 }] },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "gridPos": { "x": 3, "y": 0, "w": 3, "h": 4 }
+    },
+
+    {
+      "type": "stat",
+      "id": 3,
+      "title": "Redis Status",
+      "targets": [{ "expr": "up{job=\"redis-exporter\"}", "legendFormat": "Redis" }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{ "type": "value", "options": { "0": { "text": "OFFLINE", "color": "red" }, "1": { "text": "ONLINE", "color": "green" } } }],
+          "thresholds": { "steps": [{ "color": "red", "value": 0 }, { "color": "green", "value": 1 }] },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "gridPos": { "x": 6, "y": 0, "w": 3, "h": 4 }
+    },
+
+    {
+      "type": "stat",
+      "id": 4,
+      "title": "Dead Letter Queue",
+      "description": "Número de jobs que falharam 3x. Deve ser sempre 0.",
+      "targets": [{ "expr": "supreme_dead_letter_queue_size", "legendFormat": "DLQ" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 1 }] },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "gridPos": { "x": 9, "y": 0, "w": 3, "h": 4 }
+    },
+
+    {
+      "type": "stat",
+      "id": 5,
+      "title": "Req/s (últimos 5m)",
+      "targets": [{ "expr": "sum(rate(supreme_http_requests_total[5m]))", "legendFormat": "req/s" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "thresholds": { "steps": [{ "color": "blue", "value": 0 }] },
+          "color": { "mode": "fixed", "fixedColor": "blue" }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "gridPos": { "x": 12, "y": 0, "w": 3, "h": 4 }
+    },
+
+    {
+      "type": "stat",
+      "id": 6,
+      "title": "Eventos Armazenados/min",
+      "targets": [{ "expr": "sum(rate(supreme_ingest_events_total{result=\"stored\"}[5m])) * 60", "legendFormat": "stored/min" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "steps": [{ "color": "blue", "value": 0 }] },
+          "color": { "mode": "fixed", "fixedColor": "blue" }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "gridPos": { "x": 15, "y": 0, "w": 3, "h": 4 }
+    },
+
+    {
+      "type": "stat",
+      "id": 7,
+      "title": "Taxa de Deduplicação",
+      "description": "% de eventos descartados por duplicata",
+      "targets": [{
+        "expr": "1 - (sum(rate(supreme_ingest_events_total{result=\"stored\"}[5m])) / sum(rate(supreme_ingest_events_total{result=\"received\"}[5m])))",
+        "legendFormat": "dedup %"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "yellow", "value": 0.3 }] },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "gridPos": { "x": 18, "y": 0, "w": 3, "h": 4 }
+    },
+
+    {
+      "type": "stat",
+      "id": 8,
+      "title": "Taxa de Erro HTTP 5xx",
+      "targets": [{
+        "expr": "sum(rate(supreme_http_requests_total{status=~\"5..\"}[5m])) / sum(rate(supreme_http_requests_total[5m]))",
+        "legendFormat": "error rate"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "yellow", "value": 0.01 }, { "color": "red", "value": 0.05 }] },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "gridPos": { "x": 21, "y": 0, "w": 3, "h": 4 }
+    },
+
+    // ── ROW 2: Séries temporais de HTTP ────────────────────────────────────
+
+    {
+      "type": "timeseries",
+      "id": 9,
+      "title": "Requisições HTTP por Status",
+      "targets": [
+        { "expr": "sum by (status) (rate(supreme_http_requests_total[5m]))", "legendFormat": "HTTP {{status}}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2 } },
+        "overrides": [
+          { "matcher": { "id": "byRegexp", "options": "HTTP 5.." }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byRegexp", "options": "HTTP 4.." }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byRegexp", "options": "HTTP 2.." }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "tooltip": { "mode": "multi" } },
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 }
+    },
+
+    {
+      "type": "timeseries",
+      "id": 10,
+      "title": "Latência HTTP (P50 / P95 / P99)",
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(supreme_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P50" },
+        { "expr": "histogram_quantile(0.95, sum(rate(supreme_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P95" },
+        { "expr": "histogram_quantile(0.99, sum(rate(supreme_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P99" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 2 },
+          "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "yellow", "value": 2 }, { "color": "red", "value": 5 }] }
+        }
+      },
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 }
+    },
+
+    // ── ROW 3: Pipeline e Ingestão ─────────────────────────────────────────
+
+    {
+      "type": "timeseries",
+      "id": 11,
+      "title": "Ingestão de Eventos",
+      "targets": [
+        { "expr": "sum(rate(supreme_ingest_events_total{result=\"received\"}[5m])) * 60", "legendFormat": "Recebidos/min" },
+        { "expr": "sum(rate(supreme_ingest_events_total{result=\"stored\"}[5m])) * 60", "legendFormat": "Armazenados/min" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Recebidos/min" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Armazenados/min" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] }
+        ]
+      },
+      "gridPos": { "x": 0, "y": 12, "w": 8, "h": 8 }
+    },
+
+    {
+      "type": "timeseries",
+      "id": 12,
+      "title": "Pipeline RQ — Execuções por Status",
+      "targets": [
+        { "expr": "rate(supreme_pipeline_runs_total{status=\"ok\"}[5m]) * 60", "legendFormat": "OK/min" },
+        { "expr": "rate(supreme_pipeline_runs_total{status=\"error\"}[5m]) * 60", "legendFormat": "Erro/min" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "OK/min" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Erro/min" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "gridPos": { "x": 8, "y": 12, "w": 8, "h": 8 }
+    },
+
+    {
+      "type": "timeseries",
+      "id": 13,
+      "title": "Dead Letter Queue — Histórico",
+      "description": "Qualquer valor > 0 é crítico e dispara alerta.",
+      "targets": [
+        { "expr": "supreme_dead_letter_queue_size", "legendFormat": "DLQ Size" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "lineWidth": 2, "fillOpacity": 20 },
+          "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 1 }] },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "gridPos": { "x": 16, "y": 12, "w": 8, "h": 8 }
+    },
+
+    // ── ROW 4: Banco de Dados ──────────────────────────────────────────────
+
+    {
+      "type": "timeseries",
+      "id": 14,
+      "title": "PostgreSQL — Conexões Ativas",
+      "targets": [
+        { "expr": "pg_stat_activity_count{job=\"postgres-exporter\", datname=\"supreme\"}", "legendFormat": "Conexões" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "lineWidth": 2 },
+          "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "yellow", "value": 50 }, { "color": "red", "value": 80 }] },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "gridPos": { "x": 0, "y": 20, "w": 8, "h": 8 }
+    },
+
+    {
+      "type": "timeseries",
+      "id": 15,
+      "title": "PostgreSQL — Transações por Segundo",
+      "targets": [
+        { "expr": "rate(pg_stat_database_xact_commit_total{job=\"postgres-exporter\", datname=\"supreme\"}[5m])", "legendFormat": "Commits/s" },
+        { "expr": "rate(pg_stat_database_xact_rollback_total{job=\"postgres-exporter\", datname=\"supreme\"}[5m])", "legendFormat": "Rollbacks/s" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "lineWidth": 2 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Rollbacks/s" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "gridPos": { "x": 8, "y": 20, "w": 8, "h": 8 }
+    },
+
+    {
+      "type": "timeseries",
+      "id": 16,
+      "title": "PostgreSQL — Tamanho do Banco",
+      "targets": [
+        { "expr": "pg_database_size_bytes{job=\"postgres-exporter\", datname=\"supreme\"}", "legendFormat": "supreme" },
+        { "expr": "pg_database_size_bytes{job=\"postgres-exporter\", datname=\"sentinela\"}", "legendFormat": "sentinela" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": { "lineWidth": 2 },
+          "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "yellow", "value": 5368709120 }, { "color": "red", "value": 10737418240 }] }
+        }
+      },
+      "gridPos": { "x": 16, "y": 20, "w": 8, "h": 8 }
+    }
+
+  ]
+}

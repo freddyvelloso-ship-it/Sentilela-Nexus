@@ -1,16 +1,50 @@
-﻿global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+# =============================================================================
+# SUPREME V5 — Prometheus Configuration
+# =============================================================================
 
+global:
+  scrape_interval:     15s   # coleta métricas a cada 15 segundos
+  evaluation_interval: 15s   # avalia regras de alerta a cada 15 segundos
+  scrape_timeout:      10s
+
+# ── Alertmanager ─────────────────────────────────────────────────────────────
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# ── Regras de alerta ─────────────────────────────────────────────────────────
+rule_files:
+  - /etc/prometheus/alert_rules.yml
+
+# ── Scrape jobs ───────────────────────────────────────────────────────────────
 scrape_configs:
+
+  # SUPREME API (FastAPI + prometheus-client)
+  # Endpoint /metrics protegido por Bearer token
   - job_name: supreme-api
     metrics_path: /metrics
-    authorization:
-      type: Bearer
-      credentials_file: /etc/prometheus/supreme-api-token
+    bearer_token: ${API_SECRET_KEY}
     static_configs:
       - targets: ['supreme-api:8000']
 
+  # PostgreSQL — banco supreme
+  - job_name: postgres-exporter
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # Redis — filas RQ
+  - job_name: redis-exporter
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  # Prometheus self-monitoring
   - job_name: prometheus
     static_configs:
       - targets: ['localhost:9090']
+
+  # Alertmanager self-monitoring
+  - job_name: alertmanager
+    static_configs:
+      - targets: ['alertmanager:9093']

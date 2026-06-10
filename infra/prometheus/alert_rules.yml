@@ -1,0 +1,218 @@
+# =============================================================================
+# SUPREME V5 — Alerting Rules
+# Arquivo carregado pelo prometheus.yml via rule_files.
+#
+# Severidades:
+#   critical  → impacto imediato em produção, acionar plantão
+#   warning   → degradação detectada, investigar em até 1h
+#   info      → informativo, sem ação urgente
+# =============================================================================
+
+groups:
+
+  # ── Dead Letter Queue ──────────────────────────────────────────────────────
+  - name: dead_letter_queue
+    rules:
+
+      - alert: DLQNaoVazia
+        expr: supreme_dead_letter_queue_size > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "DLQ com {{ $value }} job(s) parado(s)"
+          description: |
+            A Dead Letter Queue do SUPREME está com {{ $value }} job(s) que
+            falharam 3 vezes consecutivas e não foram processados.
+            Verifique o banco (tabela dead_letter_queue) e os logs do worker RQ
+            para identificar a causa raiz.
+          runbook: "Consulte dead_letter_queue WHERE failed_at > NOW() - INTERVAL '1h'"
+
+      - alert: DLQCrescendo
+        expr: increase(supreme_dead_letter_queue_size[30m]) > 5
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DLQ cresceu {{ $value }} entradas nos últimos 30 min"
+          description: |
+            A fila de jobs mortos está aumentando rapidamente. O worker RQ pode
+            estar com problema sistêmico (banco indisponível, memória, etc.).
+
+  # ── Pipeline RQ ───────────────────────────────────────────────────────────
+  - name: pipeline_health
+    rules:
+
+      - alert: PipelineParado
+        expr: |
+          increase(supreme_pipeline_runs_total[30m]) == 0
+          and
+          increase(supreme_ingest_events_total{result="stored"}[30m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Worker RQ parou de processar — pipeline sem execuções em 30 min"
+          description: |
+            Eventos estão sendo ingeridos (ingest ativo) mas o pipeline analítico
+            não executou nos últimos 30 minutos. Possíveis causas:
+            - Worker RQ caiu ou travou
+            - Redis indisponível
+            - Fila 'analytics' bloqueada
+          runbook: "docker compose logs supreme-worker | tail -100"
+
+      - alert: PipelineAltaTaxaErro
+        expr: |
+          rate(supreme_pipeline_runs_total{status="error"}[15m])
+          /
+          rate(supreme_pipeline_runs_total[15m]) > 0.25
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Taxa de erro do pipeline acima de 25%"
+          description: |
+            Mais de 25% das execuções do pipeline estão falhando.
+            Taxa atual: {{ $value | humanizePercentage }}.
+            Verifique logs do worker e a tabela system_health_logs.
+
+      - alert: IngestSemEventosArmazenados
+        expr: |
+          rate(supreme_ingest_events_total{result="received"}[15m]) > 0
+          and
+          rate(supreme_ingest_events_total{result="stored"}[15m]) == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Eventos recebidos mas nenhum armazenado — possível falha no banco"
+          description: |
+            O endpoint /v1/events/ingest está recebendo eventos mas não consegue
+            persistir nenhum. Verifique conexão com o PostgreSQL e espaço em disco.
+
+  # ── Erros HTTP ────────────────────────────────────────────────────────────
+  - name: http_errors
+    rules:
+
+      - alert: AltaTaxaErros5xx
+        expr: |
+          rate(supreme_http_requests_total{status=~"5.."}[5m])
+          /
+          rate(supreme_http_requests_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Taxa de erros 5xx acima de 5% (atual: {{ $value | humanizePercentage }})"
+          description: |
+            O SUPREME backend está retornando erros internos em mais de 5% das
+            requisições nos últimos 5 minutos. Verifique logs da API.
+          runbook: "docker compose logs supreme-api | grep ERROR | tail -50"
+
+      - alert: LatenciaAltaP95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(supreme_http_request_duration_seconds_bucket[5m])) by (le)
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latência P95 acima de 5s (atual: {{ $value | humanizeDuration }})"
+          description: |
+            95% das requisições estão demorando mais de 5 segundos para responder.
+            O banco de dados ou o processamento estão lentos.
+
+      - alert: APIIndisponivel
+        expr: up{job="supreme-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SUPREME API fora do ar"
+          description: |
+            O Prometheus não consegue coletar métricas do supreme-api há mais de 1 minuto.
+            O serviço pode estar caído. Verifique: docker compose ps supreme-api
+          runbook: "docker compose restart supreme-api"
+
+  # ── Banco de Dados (PostgreSQL via postgres-exporter) ─────────────────────
+  - name: database_health
+    rules:
+
+      - alert: PostgreSQLIndisponivel
+        expr: up{job="postgres-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL SUPREME fora do ar"
+          description: |
+            O postgres-exporter não consegue conectar ao banco supreme-db.
+            Verifique: docker compose ps supreme-db
+          runbook: "docker compose restart supreme-db"
+
+      - alert: ConexoesPostgreSQLAltas
+        expr: |
+          pg_stat_activity_count{job="postgres-exporter", datname="supreme"}
+          > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL com {{ $value }} conexões ativas (limite recomendado: 80)"
+          description: |
+            O banco supreme está com muitas conexões abertas. Verifique se o pool
+            do SQLAlchemy está configurado corretamente (DATABASE_POOL_SIZE).
+
+      - alert: PostgreSQLTransacoesLentas
+        expr: |
+          pg_stat_activity_max_tx_duration{job="postgres-exporter", datname="supreme"} > 30
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Transação longa detectada no PostgreSQL ({{ $value | humanizeDuration }})"
+          description: |
+            Existe uma transação aberta há mais de 30 segundos no banco supreme.
+            Pode indicar lock, query lenta ou transação não encerrada no código.
+
+      - alert: PostgreSQLEspacoDisco
+        expr: |
+          pg_database_size_bytes{job="postgres-exporter", datname="supreme"}
+          > 10 * 1024 * 1024 * 1024
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Banco supreme acima de 10 GB (atual: {{ $value | humanizeBytes }})"
+          description: |
+            O banco de dados está crescendo. Verifique se a política de retenção
+            de 18 meses para events_raw está sendo aplicada (ver LGPD-04).
+
+      - alert: PostgreSQLDeadlocks
+        expr: |
+          increase(pg_stat_database_deadlocks_total{job="postgres-exporter", datname="supreme"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Deadlock detectado no PostgreSQL"
+          description: |
+            Ocorreu um deadlock no banco supreme. O mecanismo de deduplicação
+            SELECT-then-INSERT em events_raw é candidato provável sob carga alta.
+
+  # ── Redis ─────────────────────────────────────────────────────────────────
+  - name: redis_health
+    rules:
+
+      - alert: RedisIndisponivel
+        expr: up{job="redis-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis fora do ar — filas RQ paradas"
+          description: |
+            O Redis está inacessível. O worker RQ e o enqueue_pipeline() vão falhar.
+            Todos os novos eventos ingeridos não serão processados pelo pipeline.
+          runbook: "docker compose restart supreme-redis"

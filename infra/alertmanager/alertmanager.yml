@@ -1,0 +1,127 @@
+# =============================================================================
+# SUPREME V5 — Alertmanager Configuration
+#
+# Recebe alertas do Prometheus e envia por e-mail.
+#
+# Variáveis obrigatórias no .env.production (ou docker-compose environment):
+#   ALERTMANAGER_SMTP_HOST     ex: smtp.gmail.com:587
+#   ALERTMANAGER_SMTP_USER     ex: noreply@suaorg.com.br
+#   ALERTMANAGER_SMTP_PASSWORD senha ou app-password do SMTP
+#   ALERTMANAGER_EMAIL_TO      destinatário dos alertas
+# =============================================================================
+
+global:
+  # Tempo sem novos disparos para considerar o alerta "resolvido"
+  resolve_timeout: 5m
+
+  # Configuração SMTP global (compartilhada por todos os receivers)
+  smtp_smarthost: '${ALERTMANAGER_SMTP_HOST}'
+  smtp_from: 'SUPREME Alertas <${ALERTMANAGER_SMTP_USER}>'
+  smtp_auth_username: '${ALERTMANAGER_SMTP_USER}'
+  smtp_auth_password: '${ALERTMANAGER_SMTP_PASSWORD}'
+  smtp_require_tls: true
+
+# ── Templates ───────────────────────────────────────────────────────────────
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# ── Roteamento ───────────────────────────────────────────────────────────────
+# Todos os alertas vão para o receiver 'email-equipe'.
+# Alertas críticos são repetidos a cada 30 min até resolução.
+# Alertas warning são agrupados e enviados a cada 1h.
+
+route:
+  receiver: email-equipe
+  group_by: ['alertname', 'severity']
+  group_wait: 30s        # aguarda 30s para agrupar alertas que chegam juntos
+  group_interval: 5m     # espera 5m antes de enviar novo grupo do mesmo tipo
+  repeat_interval: 4h    # reenvia alerta ativo a cada 4h se não resolvido
+
+  routes:
+    # Críticos: repetir mais frequentemente
+    - match:
+        severity: critical
+      receiver: email-equipe
+      repeat_interval: 30m
+
+    # Warnings: repetir a cada 2h
+    - match:
+        severity: warning
+      receiver: email-equipe
+      repeat_interval: 2h
+
+# ── Receivers ────────────────────────────────────────────────────────────────
+receivers:
+  - name: email-equipe
+    email_configs:
+      - to: '${ALERTMANAGER_EMAIL_TO}'
+        send_resolved: true   # envia também quando o alerta é resolvido
+        headers:
+          Subject: '[SUPREME {{ .Status | toUpper }}] {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        html: |
+          <!DOCTYPE html>
+          <html>
+          <body style="font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px;">
+            <div style="max-width: 600px; margin: auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+
+              <!-- Header -->
+              <div style="background: {{ if eq .Status "firing" }}#C0392B{{ else }}#27AE60{{ end }}; padding: 20px 24px;">
+                <h2 style="margin: 0; color: white; font-size: 18px;">
+                  SUPREME V5 — {{ if eq .Status "firing" }}⚠ ALERTA ATIVO{{ else }}✓ RESOLVIDO{{ end }}
+                </h2>
+              </div>
+
+              <!-- Alerts -->
+              {{ range .Alerts }}
+              <div style="padding: 20px 24px; border-bottom: 1px solid #eee;">
+                <p style="margin: 0 0 8px; font-size: 16px; font-weight: bold; color: #1A3A5C;">
+                  {{ .Annotations.summary }}
+                </p>
+                <p style="margin: 0 0 12px; color: #555; font-size: 14px; line-height: 1.5;">
+                  {{ .Annotations.description }}
+                </p>
+                {{ if .Annotations.runbook }}
+                <p style="margin: 0; font-size: 13px; color: #888;">
+                  <strong>Runbook:</strong> <code style="background:#f0f0f0;padding:2px 6px;border-radius:3px;">{{ .Annotations.runbook }}</code>
+                </p>
+                {{ end }}
+                <p style="margin: 8px 0 0; font-size: 12px; color: #aaa;">
+                  Iniciou em: {{ .StartsAt.Format "02/01/2006 15:04:05" }} UTC
+                  {{ if .EndsAt }} | Resolvido em: {{ .EndsAt.Format "02/01/2006 15:04:05" }} UTC{{ end }}
+                </p>
+              </div>
+              {{ end }}
+
+              <!-- Footer -->
+              <div style="padding: 16px 24px; background: #f9f9f9;">
+                <p style="margin: 0; font-size: 12px; color: #aaa;">
+                  SUPREME V5 Monitoring · Alertmanager · Ambiente: produção
+                </p>
+              </div>
+            </div>
+          </body>
+          </html>
+
+# ── Inibição ─────────────────────────────────────────────────────────────────
+# Se API estiver fora do ar, suprimir alertas de latência/erros HTTP
+# (são sintomas do mesmo problema raiz).
+inhibit_rules:
+  - source_match:
+      alertname: APIIndisponivel
+    target_match_re:
+      alertname: 'AltaTaxaErros5xx|LatenciaAltaP95'
+    equal: ['job']
+
+  # Se PostgreSQL estiver fora do ar, suprimir alertas de conexões/transações
+  - source_match:
+      alertname: PostgreSQLIndisponivel
+    target_match_re:
+      alertname: 'ConexoesPostgreSQLAltas|PostgreSQLTransacoesLentas|PostgreSQLDeadlocks'
+    equal: ['job']
+
+  # Se Redis estiver fora do ar, suprimir alerta de pipeline parado
+  # (o pipeline para por causa do Redis, não por bug próprio)
+  - source_match:
+      alertname: RedisIndisponivel
+    target_match:
+      alertname: PipelineParado
