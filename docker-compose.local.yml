@@ -69,12 +69,6 @@ services:
     depends_on:
       - supreme-api
 
-  # Monta estáticos e código Python do Sentinela direto do host — sem rebuild ao editar
-  sentinela:
-    volumes:
-      - ./sentinela/static:/app/static:ro
-      - ./sentinela/src:/app/src:ro
-
 networks:
   backend:
     driver: bridge
