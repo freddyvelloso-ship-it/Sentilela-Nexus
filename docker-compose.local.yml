@@ -19,6 +19,10 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.retention.time=30d
 
+  alertmanager:
+    volumes:
+      - ./infra/alertmanager/alertmanager.local.yml:/etc/alertmanager/alertmanager.yml:ro
+
   loki:
     user: "0:0"
 
