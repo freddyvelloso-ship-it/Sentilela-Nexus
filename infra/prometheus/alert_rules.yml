@@ -184,7 +184,7 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "Banco supreme acima de 10 GB (atual: {{ $value | humanizeBytes }})"
+          summary: "Banco supreme acima de 10 GB (atual: {{ $value | humanize1024 }}B)"
           description: |
             O banco de dados está crescendo. Verifique se a política de retenção
             de 18 meses para events_raw está sendo aplicada (ver LGPD-04).
